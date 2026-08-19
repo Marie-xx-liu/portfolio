@@ -1,0 +1,118 @@
+---
+/**
+ * #experience — the reference's "past adventures" log, retitled for the
+ * water theme. Each row is year / org / one line, with a hairline rule
+ * between and a wake-mark that fills on hover.
+ */
+import { voyage } from '../data/home';
+---
+
+<div class="voyage">
+  {
+    voyage.map((stop, i) => (
+      <article class:list={['stop', stop.now && 'stop--now']} data-reveal style={`--reveal-delay:${i * 55}ms`}>
+        <span class="stop__year">{stop.year}</span>
+        <div class="stop__body">
+          <h4 class="stop__org">
+            {stop.org}
+            {stop.now && <span class="stop__pulse" aria-hidden="true" />}
+          </h4>
+          <p class="stop__note">{stop.note}</p>
+        </div>
+      </article>
+    ))
+  }
+</div>
+
+<style>
+  .voyage {
+    max-width: 973px; /* reference timeline column */
+  }
+
+  .stop {
+    position: relative;
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 32px;
+    padding-block: 26px;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .stop:last-child {
+    border-bottom: 1px solid var(--ink-12);
+  }
+
+  /* The wake: a thin line that runs out from the left on hover. */
+  .stop::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--water-mid);
+    transition: width 0.7s var(--ease-out-soft);
+  }
+
+  .stop:hover::before {
+    width: 100%;
+  }
+
+  .stop__year {
+    padding-top: 6px;
+    font-size: var(--text-meta);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-45);
+    white-space: nowrap;
+  }
+
+  .stop__org {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--text-h4);
+  }
+
+  .stop--now .stop__org {
+    color: var(--water-deep);
+  }
+
+  .stop__pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--water-mid);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--water-mid) 60%, transparent);
+    animation: buoy 2.6s ease-out infinite;
+  }
+
+  @keyframes buoy {
+    70%,
+    100% {
+      box-shadow: 0 0 0 12px transparent;
+    }
+  }
+
+  .stop__note {
+    margin-top: 6px;
+    max-width: 60ch;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+
+  @media (max-width: 700px) {
+    .stop {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .stop__year {
+      padding-top: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stop__pulse {
+      animation: none;
+    }
+  }
+</style>

@@ -1,0 +1,130 @@
+---
+/**
+ * #contact — sits on open water rather than on the cream sheet, so the
+ * page ends where it began. Type is set light against the night palette
+ * the backdrop reaches at full scroll.
+ */
+import { site } from '../data/site';
+---
+
+<div class="contact">
+  <h2 class="contact__title" data-reveal>
+    Plenty of water<br />still ahead.
+  </h2>
+
+  <p class="contact__lede" data-reveal style="--reveal-delay:80ms">
+    Open to AI product, strategy, data, and delivery roles — in Amsterdam or anywhere a
+    good problem is. If you are building something where being right matters more than
+    being fast, I would like to hear about it.
+  </p>
+
+  <div class="contact__links" data-reveal style="--reveal-delay:160ms">
+    <a class="contact__primary" href={`mailto:${site.email}`}>{site.email}</a>
+    <a class="contact__secondary" href={site.social.linkedin} rel="me noopener" target="_blank">
+      LinkedIn
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8" /></svg>
+    </a>
+  </div>
+
+  <footer class="contact__foot">
+    <span>{site.location}</span>
+    <span>© {new Date().getFullYear()} {site.name}</span>
+  </footer>
+</div>
+
+<style>
+  .contact {
+    color: var(--on-dark);
+    padding-block: 22vh 40px;
+    min-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    /* Keep type off the horizon line, where the backdrop is busiest. */
+    justify-content: flex-start;
+    text-shadow: 0 1px 24px rgb(6 16 24 / 0.55);
+  }
+
+  .contact__title {
+    font-size: var(--text-hero);
+    line-height: 1.02;
+  }
+
+  .contact__lede {
+    margin-top: 26px;
+    max-width: 48ch;
+    font-size: var(--text-lead);
+    color: rgb(255 253 250 / 0.82);
+  }
+
+  .contact__links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 40px;
+  }
+
+  .contact__primary,
+  .contact__secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 52px;
+    padding: 0 26px;
+    border-radius: 999px;
+    font-size: var(--text-sm);
+    transition:
+      background 0.3s,
+      color 0.3s,
+      translate 0.3s var(--ease-out-soft);
+  }
+
+  .contact__primary {
+    background: var(--paper);
+    color: var(--ink);
+    text-shadow: none;
+  }
+
+  .contact__primary:hover {
+    translate: 0 -2px;
+  }
+
+  .contact__secondary {
+    border: 1px solid rgb(255 253 250 / 0.4);
+    color: var(--on-dark);
+  }
+
+  .contact__secondary:hover {
+    background: rgb(255 253 250 / 0.14);
+  }
+
+  .contact__secondary svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .contact__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 60px;
+    font-size: var(--text-meta);
+    color: rgb(255 253 250 / 0.6);
+  }
+
+  @media (max-width: 700px) {
+    .contact {
+      padding-block: 16vh 32px;
+    }
+    .contact__foot {
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+</style>

@@ -1,0 +1,52 @@
+---
+import { nav, site } from '../data/site';
+---
+
+<footer class="mt-32 border-t border-line">
+  <div class="container-editorial grid gap-12 py-16 md:grid-cols-3">
+    <!-- Identity -->
+    <div>
+      <p class="font-display text-lg">{site.name}</p>
+      <p class="mt-2 max-w-[30ch] text-sm text-ink-muted">
+        I build the systems that turn AI productivity into institutional advantage.
+      </p>
+      <a
+        href={`mailto:${site.email}`}
+        class="link-underline mt-4 inline-block font-mono text-sm text-ink"
+      >
+        {site.email}
+      </a>
+    </div>
+
+    <!-- Nav relinks -->
+    <nav aria-label="Footer" class="flex flex-col gap-3">
+      <p class="eyebrow mb-1">Sitemap</p>
+      {
+        nav.map((item) => (
+          <a href={item.href} class="link-underline w-fit text-sm">
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <!-- Social -->
+    <div class="flex flex-col gap-3">
+      <p class="eyebrow mb-1">Elsewhere</p>
+      <a
+        href={site.social.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link-underline w-fit text-sm"
+      >
+        LinkedIn ↗
+      </a>
+      <p class="mt-2 font-mono text-xs text-ink-muted">{site.location}</p>
+    </div>
+  </div>
+
+  <div class="container-editorial flex flex-col gap-2 border-t border-line py-6 sm:flex-row sm:items-center sm:justify-between">
+    <p class="font-mono text-xs text-ink-muted">© 2026 Marie · Built with intent.</p>
+    <p class="font-mono text-xs text-ink-muted">Product · Strategy · Data · Delivery</p>
+  </div>
+</footer>

@@ -1,0 +1,151 @@
+---
+/**
+ * One employer chapter. Reproduces the reference's block grammar:
+ *
+ *   org / role / dates  →  marquee strip  →  headline + description
+ *   →  Disciplines | My Role (40/60)  →  feature cards (40/60)
+ */
+import Marquee from './Marquee.astro';
+import FeatureCard from './FeatureCard.astro';
+import type { WorkChapter } from '../data/home';
+
+interface Props {
+  chapter: WorkChapter;
+}
+const { chapter } = Astro.props;
+---
+
+<section class="chapter" id={chapter.id}>
+  <header class="chapter__head" data-reveal>
+    <h3 class="chapter__org">{chapter.org}</h3>
+    <div class="chapter__meta">
+      <span>{chapter.role}</span>
+      <span class="chapter__dates">{chapter.dates}</span>
+    </div>
+  </header>
+
+  <Marquee text={chapter.marquee} />
+
+  <div class="chapter__intro" data-reveal>
+    <h2 class="chapter__headline">{chapter.headline}</h2>
+    <p class="chapter__desc">{chapter.description}</p>
+  </div>
+
+  <div class="chapter__facts split-4060" data-reveal>
+    <div class="fact">
+      <span class="eyebrow">Disciplines</span>
+      <p>{chapter.disciplines}</p>
+    </div>
+    <div class="fact">
+      <span class="eyebrow">My Role</span>
+      <p>{chapter.myRole}</p>
+    </div>
+  </div>
+
+  <div class="chapter__cards">
+    {chapter.features.map((f, i) => <FeatureCard feature={f} delay={i * 90} />)}
+  </div>
+</section>
+
+<style>
+  .chapter {
+    padding-block: 96px 40px;
+  }
+
+  .chapter__head {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    padding-bottom: 14px;
+  }
+
+  .chapter__org {
+    font-size: var(--text-h4);
+    white-space: nowrap;
+  }
+
+  .chapter__meta {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+
+  .chapter__dates {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .chapter__intro {
+    padding-block: 40px 12px;
+  }
+
+  .chapter__headline {
+    max-width: 17em; /* ~2–4 lines across the 1216 grid, as on the reference */
+    font-size: var(--text-h2);
+    text-wrap: pretty;
+  }
+
+  .chapter__desc {
+    margin-top: 26px;
+    max-width: 74ch;
+    font-size: var(--text-body);
+    color: var(--ink-70);
+  }
+
+  .chapter__facts {
+    padding-block: 34px;
+  }
+
+  .fact p {
+    margin-top: 8px;
+    max-width: 56ch;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+
+  .fact + .fact {
+    padding-left: 24px;
+  }
+
+  /* The reference alternates 486/730 and 730/486 between rows. Flex
+     basis (not a fixed grid) lets each card's own `span` decide, so a
+     chapter can lead narrow or lead wide with no new CSS. */
+  .chapter__cards {
+    display: flex;
+    margin-inline: -24px;
+    padding-top: 12px;
+  }
+
+  .chapter__cards > :global(.card--narrow) {
+    flex: 486 1 0;
+  }
+
+  .chapter__cards > :global(.card--wide) {
+    flex: 730 1 0;
+  }
+
+  @media (max-width: 900px) {
+    .chapter {
+      padding-block: 64px 24px;
+    }
+    .chapter__head {
+      flex-direction: column;
+      gap: 6px;
+    }
+    .chapter__meta {
+      flex-direction: column;
+      gap: 2px;
+    }
+    .chapter__cards {
+      flex-direction: column;
+      margin-inline: -16px;
+    }
+    .fact + .fact {
+      padding-left: 0;
+    }
+  }
+</style>

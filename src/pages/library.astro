@@ -1,0 +1,106 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LibraryIndex from '../components/LibraryIndex.tsx';
+import { seo } from '../data/site';
+import { library } from '../data/library';
+import { href } from '../lib/url';
+---
+
+<BaseLayout title={seo['/library'].title} description={seo['/library'].description} nav="detail">
+  <section class="head porthole">
+    <div class="shell">
+      <p class="head__eyebrow" data-reveal>Library · Knowledge map</p>
+      <h1 class="head__title" data-reveal style="--reveal-delay:70ms">Positioned, not piled.</h1>
+      <p class="head__intro" data-reveal style="--reveal-delay:140ms">
+        Frameworks, papers, and ideas across philosophy, decision, AI-native, and execution —
+        each tagged by how settled it is, and how it relates to the rest.
+      </p>
+    </div>
+  </section>
+
+  <div class="sheet">
+    <div class="shell">
+      <section class="index">
+        <LibraryIndex client:load entries={library} />
+      </section>
+
+      <nav class="onward">
+        <a class="onward__home" href={href('/')}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4 6.5 10l6 6" /></svg>
+          <span>Back to the home page</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .head {
+    display: flex;
+    align-items: flex-end;
+    min-height: 58svh;
+    padding-block: 150px 70px;
+  }
+
+  .head__eyebrow {
+    font-size: var(--text-meta);
+    color: var(--ink-70);
+    text-shadow: 0 1px 20px rgb(255 253 250 / 0.8);
+  }
+
+  .head__title {
+    margin-top: 14px;
+    font-size: var(--text-hero);
+    text-shadow: 0 2px 40px rgb(255 253 250 / 0.75);
+  }
+
+  .head__intro {
+    margin-top: 20px;
+    max-width: 52ch;
+    font-size: var(--text-lead);
+    color: var(--ink-70);
+    text-shadow: 0 1px 24px rgb(255 253 250 / 0.85);
+  }
+
+  .index {
+    padding-block: 64px;
+  }
+
+  .onward {
+    padding-block: 24px 80px;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .onward__home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 50px;
+    margin-top: 34px;
+    padding: 0 24px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--on-dark);
+    font-size: var(--text-sm);
+    transition: background 0.3s;
+  }
+
+  .onward__home:hover {
+    background: var(--water-deep);
+  }
+
+  .onward__home svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: translate 0.3s var(--ease-out-soft);
+  }
+
+  .onward__home:hover svg {
+    translate: -3px 0;
+  }
+</style>

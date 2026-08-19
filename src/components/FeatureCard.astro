@@ -1,0 +1,112 @@
+---
+/**
+ * A work card in the reference's 486 / 730 grid. The image sits inset
+ * inside the cell (the reference pads 24px), with the title and blurb
+ * beneath. Cards that point at a project become links to their detail
+ * page; the rest render as static blocks.
+ */
+import AssetSlot from './AssetSlot.astro';
+import type { WorkFeature } from '../data/home';
+import { href as url } from '../lib/url';
+
+interface Props {
+  feature: WorkFeature;
+  delay?: number;
+}
+const { feature, delay = 0 } = Astro.props;
+
+const link = feature.href ?? (feature.project ? `/work/${feature.project}` : null);
+const href = link ? url(link) : null;
+const Tag = href ? 'a' : 'div';
+const hint = feature.span === 'wide' ? '1362 × 1022 (or 4:3)' : '876 × 656 (or 4:3)';
+---
+
+<Tag
+  class:list={['card', `card--${feature.span}`, href && 'card--link']}
+  href={href}
+  data-reveal
+  style={`--reveal-delay:${delay}ms`}
+>
+  <div class="card__media">
+    <AssetSlot name={feature.asset} alt={feature.title} hint={hint} />
+  </div>
+
+  <div class="card__body">
+    <h4 class="card__title">
+      {feature.title}
+      {
+        href && (
+          <svg class="card__arrow" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M5 15 15 5M7 5h8v8" />
+          </svg>
+        )
+      }
+    </h4>
+    <p class="card__blurb">{feature.blurb}</p>
+  </div>
+</Tag>
+
+<style>
+  .card {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    border-radius: 14px;
+    transition: background 0.4s var(--ease-out-soft);
+  }
+
+  .card--link:hover {
+    background: var(--ink-06);
+  }
+
+  .card__media {
+    overflow: hidden;
+    border-radius: 10px;
+  }
+
+  .card__media :global(.slot) {
+    transition: scale 0.6s var(--ease-out-soft);
+  }
+
+  .card--link:hover .card__media :global(.slot) {
+    scale: 1.02;
+  }
+
+  .card__body {
+    padding-top: 22px;
+  }
+
+  .card__title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: var(--text-h5);
+    line-height: 1.1;
+  }
+
+  .card__arrow {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: var(--ink-45);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition:
+      translate 0.35s var(--ease-out-soft),
+      stroke 0.35s;
+  }
+
+  .card--link:hover .card__arrow {
+    translate: 2px -2px;
+    stroke: var(--water-mid);
+  }
+
+  .card__blurb {
+    margin-top: 10px;
+    max-width: 52ch;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+</style>

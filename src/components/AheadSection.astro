@@ -1,0 +1,76 @@
+---
+/**
+ * The reference's "plotting a course to the next step in the journey"
+ * block — already nautical, so it carries into the water theme intact.
+ */
+import { ahead } from '../data/home';
+---
+
+<div class="ahead">
+  <header class="ahead__head" data-reveal>
+    <h2 class="ahead__title">{ahead.title}</h2>
+    <p class="ahead__sub">{ahead.subtitle}</p>
+  </header>
+
+  <div class="ahead__grid">
+    {
+      ahead.themes.map((t, i) => (
+        <article class="theme" data-reveal style={`--reveal-delay:${i * 80}ms`}>
+          <span class="theme__mark" aria-hidden="true">✳</span>
+          <h4 class="theme__title">{t.title}</h4>
+          <p class="theme__body">{t.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .ahead__title {
+    font-size: var(--text-h2);
+    white-space: pre-line;
+  }
+
+  .ahead__sub {
+    margin-top: 14px;
+    font-size: var(--text-sm);
+    color: var(--ink-45);
+  }
+
+  .ahead__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    margin-top: 52px;
+  }
+
+  .theme {
+    padding: 30px 32px 34px 0;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .theme__mark {
+    display: block;
+    font-size: 14px;
+    color: var(--water-mid);
+  }
+
+  .theme__title {
+    margin-top: 14px;
+    font-size: var(--text-h5);
+  }
+
+  .theme__body {
+    margin-top: 10px;
+    max-width: 48ch;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+
+  @media (max-width: 800px) {
+    .ahead__grid {
+      grid-template-columns: 1fr;
+      margin-top: 34px;
+    }
+  }
+</style>

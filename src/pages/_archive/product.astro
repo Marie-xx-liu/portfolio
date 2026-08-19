@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import Placeholder from '../components/Placeholder.astro';
+import { seo } from '../data/site';
+import { roles, projectsByRole } from '../data/products';
+
+const methodTopics = [
+  { id: 'METHOD-workflow', label: 'Workflow' },
+  { id: 'METHOD-agent', label: 'Agent' },
+  { id: 'METHOD-multiagent', label: 'Multi-agent' },
+  { id: 'METHOD-rag', label: 'RAG' },
+];
+const methodDims = ['Dimensions', 'Metrics', 'Method', 'Tools / observability', 'Failure modes'];
+---
+
+<BaseLayout title={seo['/product'].title} description={seo['/product'].description}>
+  <PageHeader
+    eyebrow="Product · What I did"
+    title="Systems, not slideware."
+    intro="Projects by role — Product Manager, Project Management, and Business Intelligence. Each one: background → action → method → effect."
+  />
+
+  <!-- Role tab nav (anchors for skeleton; interactive RoleTabs in Phase 4) -->
+  <nav class="container-editorial sticky top-[64px] z-30 -mx-0 mt-12 border-y border-line bg-bg/85 py-3 backdrop-blur">
+    <div class="flex flex-wrap gap-2 font-mono text-xs">
+      {
+        roles.map((r) => (
+          <a href={`#role-${r.key}`} class="rounded-full border border-line px-4 py-2 transition-colors hover:border-ink">
+            {r.label}
+          </a>
+        ))
+      }
+      <a href="#methodology" class="rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-accent">
+        Methodology
+      </a>
+    </div>
+  </nav>
+
+  <!-- Role sections -->
+  {
+    roles.map((r) => (
+      <section id={`role-${r.key}`} class="container-editorial scroll-mt-32 py-20">
+        <p class="eyebrow reveal mb-8">{r.label}</p>
+        <div class="grid gap-8 lg:grid-cols-2">
+          {projectsByRole(r.key).map((p) => (
+            <article class="card reveal overflow-hidden" id={p.id}>
+              {p.videoId ? (
+                <Placeholder id={p.videoId} ratio="16/9" label="15s product clip" />
+              ) : (
+                <div class="border-b border-line px-6 py-3 font-mono text-xs text-ink-muted">
+                  Interactive case → see below
+                </div>
+              )}
+              <div class="p-6 md:p-8">
+                <div class="flex items-center gap-3">
+                  <h3 class="font-display text-2xl">{p.title}</h3>
+                  {p.signature && (
+                    <span class="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">
+                      Signature
+                    </span>
+                  )}
+                </div>
+                <p class="mt-1 font-mono text-xs text-ink-muted">{p.client}</p>
+                <dl class="mt-6 space-y-4 text-sm">
+                  {Object.entries(p.elements).map(([k, v]) => (
+                    <div>
+                      <dt class="font-mono text-xs uppercase tracking-[0.12em] text-accent">{k}</dt>
+                      <dd class="mt-1 text-ink-muted">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p class="mt-6 font-mono text-xs text-ink-muted">
+                  [ Phase 3/4: click-to-expand · workflow + multi-agent diagram · output gallery ]
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {r.key === 'bi' && (
+          <div class="reveal mt-8">
+            <Placeholder id="[BI-METRIC-TREE-EXPLORER]" ratio="21/9" label="Interactive Metric-Tree explorer (Phase 4) — North Star → drill-down + dimensions" />
+          </div>
+        )}
+      </section>
+    ))
+  }
+
+  <!-- METHODOLOGY -->
+  <section id="methodology" class="container-editorial scroll-mt-32 py-20">
+    <p class="eyebrow reveal mb-3">Methodology · evaluation system</p>
+    <h2 class="reveal max-w-[24ch] text-title font-display">How I evaluate workflows, agents, multi-agent systems, and RAG.</h2>
+    <p class="reveal mt-4 max-w-[60ch] text-ink-muted">
+      A consistent structure across four objects. The interactive matrix below expands
+      each cell in Phase 3/4 — for now, the contract.
+    </p>
+
+    <div class="reveal mt-10 overflow-x-auto">
+      <table class="w-full min-w-[640px] border-collapse text-left font-mono text-xs">
+        <thead>
+          <tr class="border-b border-line text-ink-muted">
+            <th class="p-3 font-normal"></th>
+            {methodTopics.map((t) => <th class="p-3 font-normal text-ink">{t.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {
+            methodDims.map((dim) => (
+              <tr class="border-b border-line/60">
+                <th class="p-3 text-left font-normal text-accent">{dim}</th>
+                {methodTopics.map((t) => (
+                  <td class="p-3">
+                    <span class="text-ink-muted">[{t.id}]</span>
+                  </td>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</BaseLayout>

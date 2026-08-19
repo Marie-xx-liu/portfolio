@@ -1,0 +1,69 @@
+---
+// Renders a labeled grey block when an asset/media is missing.
+// Used site-wide so missing [ID]s are obvious but never break layout.
+// Source: Build Prompt §10.
+interface Props {
+  id: string;
+  label?: string;
+  ratio?: string; // e.g. "16/9", "1/1", "4/3"
+  class?: string;
+}
+const { id, label, ratio = '16/9', class: className = '' } = Astro.props;
+---
+
+<div
+  class:list={['placeholder', className]}
+  style={`aspect-ratio:${ratio};`}
+  role="img"
+  aria-label={`Missing asset: ${id}${label ? ` — ${label}` : ''}`}
+  data-missing-asset={id}
+>
+  <div class="placeholder__inner">
+    <span class="placeholder__tag">{id}</span>
+    {label && <span class="placeholder__label">{label}</span>}
+  </div>
+</div>
+
+<style>
+  .placeholder {
+    /* No forced width — fills its container by default (block), but a passed
+       width utility like `w-16` can constrain it (e.g. timeline logo). */
+    display: grid;
+    place-items: center;
+    background-color: color-mix(in oklab, var(--ink) 6%, var(--bg));
+    border: 1px dashed var(--line);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 11px,
+      color-mix(in oklab, var(--ink) 4%, transparent) 11px,
+      color-mix(in oklab, var(--ink) 4%, transparent) 12px
+    );
+  }
+  .placeholder__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  .placeholder__tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    background-color: var(--bg);
+    border: 1px solid var(--line);
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+  .placeholder__label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+    opacity: 0.75;
+  }
+</style>

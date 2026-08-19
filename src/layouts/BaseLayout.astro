@@ -1,0 +1,97 @@
+---
+import '../styles/global.css';
+import { site, personJsonLd } from '../data/site';
+import WaterBackdrop from '../components/backdrop/WaterBackdrop.astro';
+import CapsuleNav from '../components/CapsuleNav.astro';
+import { href } from '../lib/url';
+
+interface Props {
+  title: string;
+  description?: string;
+  noindex?: boolean;
+  /** Detail pages swap the nav's identity slot for a back link. */
+  nav?: 'home' | 'detail';
+  /** Off for the styleguide, which supplies its own chrome. */
+  chrome?: boolean;
+}
+
+const {
+  title,
+  description = site.tagline,
+  noindex = false,
+  nav = 'home',
+  chrome = true,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, site.url).href;
+const ogImage = new URL(href('/og-default.png'), site.url).href;
+---
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={href('/favicon.svg')} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#1b3b4b" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content={site.name} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {
+      !noindex && (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(personJsonLd)} />
+      )
+    }
+
+    <script is:inline>
+      document.documentElement.classList.remove('no-js');
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+
+  <body>
+    <a href="#main" class="skip">Skip to content</a>
+
+    {chrome && <WaterBackdrop />}
+    {chrome && <CapsuleNav variant={nav} />}
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <script>
+      import { initSmoothScroll } from '../lib/smoothScroll';
+      import { initReveal } from '../lib/reveal';
+      initSmoothScroll();
+      initReveal();
+    </script>
+
+    <style is:global>
+      .skip {
+        position: absolute;
+        left: -9999px;
+      }
+      .skip:focus {
+        left: 16px;
+        top: 16px;
+        z-index: 999;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: var(--paper);
+        color: var(--ink);
+      }
+    </style>
+  </body>
+</html>

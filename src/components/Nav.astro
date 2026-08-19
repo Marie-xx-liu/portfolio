@@ -1,0 +1,160 @@
+---
+import { nav, site } from '../data/site';
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header id="site-nav" class="site-nav" data-state="top">
+  <div class="container-editorial flex items-center justify-between gap-6 py-5">
+    <a href="/" class="site-nav__brand font-display" aria-label={`${site.name} — home`}>
+      Marie Xiaoxu Liu
+    </a>
+
+    <nav class="hidden items-center gap-7 md:flex" aria-label="Primary">
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            class="site-nav__link link-underline text-sm"
+            aria-current={isActive(item.href) ? 'page' : undefined}
+            data-active={isActive(item.href)}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <button
+      id="nav-toggle"
+      class="md:hidden"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="nav-burger"></span>
+    </button>
+  </div>
+
+  <!-- Mobile drawer -->
+  <div id="mobile-menu" class="site-nav__drawer" hidden>
+    <nav class="container-editorial flex flex-col gap-1 py-6" aria-label="Mobile">
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            class="border-b border-line py-4 font-display text-2xl"
+            data-active={isActive(item.href)}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    transition:
+      background-color 0.4s var(--ease-out-expo),
+      backdrop-filter 0.4s var(--ease-out-expo),
+      box-shadow 0.4s var(--ease-out-expo);
+  }
+  .site-nav[data-state='scrolled'] {
+    background-color: color-mix(in oklab, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .site-nav[data-state='scrolled'] .container-editorial {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+  .site-nav .container-editorial {
+    transition:
+      padding-top 0.4s var(--ease-out-expo),
+      padding-bottom 0.4s var(--ease-out-expo);
+  }
+  .site-nav__brand {
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .site-nav__link[data-active='true'] {
+    color: var(--accent);
+  }
+
+  .nav-burger,
+  .nav-burger::before,
+  .nav-burger::after {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    background-color: var(--ink);
+    transition: transform 0.3s var(--ease-out-expo), opacity 0.3s var(--ease-out-expo);
+  }
+  .nav-burger {
+    position: relative;
+  }
+  .nav-burger::before,
+  .nav-burger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+  }
+  .nav-burger::before {
+    top: -7px;
+  }
+  .nav-burger::after {
+    top: 7px;
+  }
+  [aria-expanded='true'] .nav-burger {
+    background-color: transparent;
+  }
+  [aria-expanded='true'] .nav-burger::before {
+    transform: translateY(7px) rotate(45deg);
+  }
+  [aria-expanded='true'] .nav-burger::after {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .site-nav__drawer {
+    background-color: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .site-nav__drawer a[data-active='true'] {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  const navEl = document.getElementById('site-nav');
+  const toggle = document.getElementById('nav-toggle');
+  const menu = document.getElementById('mobile-menu');
+
+  // Scroll-narrow state
+  const onScroll = () => {
+    if (!navEl) return;
+    navEl.dataset.state = window.scrollY > 24 ? 'scrolled' : 'top';
+  };
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Mobile drawer
+  const setOpen = (open: boolean) => {
+    if (!toggle || !menu) return;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    if (open) menu.removeAttribute('hidden');
+    else menu.setAttribute('hidden', '');
+  };
+  toggle?.addEventListener('click', () => {
+    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+  });
+  menu?.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+</script>

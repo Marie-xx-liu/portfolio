@@ -1,0 +1,59 @@
+---
+// Generative-looking line-work motif (Motif A). Deterministic, static, very weak.
+// Per Build Prompt §0.5: no full-screen "screensaver"; subtle structure only.
+interface Props {
+  lines?: number;
+  opacity?: number;
+  class?: string;
+}
+const { lines = 14, opacity = 0.5, class: className = '' } = Astro.props;
+
+// Deterministic pseudo-random so SSR + client match and it never "floats".
+function seeded(seed: number) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+const rand = seeded(42);
+
+const W = 1200;
+const H = 800;
+const paths: string[] = [];
+for (let i = 0; i < lines; i++) {
+  const baseY = (H / (lines - 1)) * i;
+  const amp = 30 + rand() * 70;
+  const phase = rand() * Math.PI * 2;
+  let d = `M 0 ${baseY.toFixed(1)}`;
+  const steps = 8;
+  for (let x = 1; x <= steps; x++) {
+    const px = (W / steps) * x;
+    const py = baseY + Math.sin(phase + (x / steps) * Math.PI * 2.2) * amp;
+    const cx = px - W / steps / 2;
+    const cy = baseY + Math.sin(phase + ((x - 0.5) / steps) * Math.PI * 2.2) * amp;
+    d += ` Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)}`;
+  }
+  paths.push(d);
+}
+---
+
+<svg
+  class:list={['linework', className]}
+  viewBox={`0 0 ${W} ${H}`}
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+  style={`--linework-opacity:${opacity};`}
+>
+  {paths.map((d) => <path d={d} fill="none" stroke="var(--line)" stroke-width="1" />)}
+</svg>
+
+<style>
+  .linework {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: var(--linework-opacity);
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>

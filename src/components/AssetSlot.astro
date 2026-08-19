@@ -1,0 +1,117 @@
+---
+/**
+ * An image slot that degrades into a designed placeholder.
+ *
+ * Drop a file at `public/<name>.{webp,png,jpg}` and it renders. Until
+ * then you get a labelled water-tinted panel showing the exact path and
+ * the recommended export size, so the layout is never broken and the
+ * shot list is visible in the page itself.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+
+interface Props {
+  /** Path under public/, without extension. e.g. "work/agent-platform" */
+  name: string;
+  alt: string;
+  /** Aspect ratio of the slot, width / height. Reference uses 4:3. */
+  ratio?: number;
+  /** Recommended export width, shown on the placeholder. */
+  hint?: string;
+  loading?: 'lazy' | 'eager';
+}
+
+const { name, alt, ratio = 4 / 3, hint, loading = 'lazy' } = Astro.props;
+
+const EXTS = ['webp', 'avif', 'png', 'jpg', 'jpeg'];
+const publicDir = path.resolve('public');
+
+let src: string | null = null;
+for (const ext of EXTS) {
+  if (fs.existsSync(path.join(publicDir, `${name}.${ext}`))) {
+    src = `/${name}.${ext}`;
+    break;
+  }
+}
+---
+
+<figure class="slot" style={`--ratio:${ratio}`}>
+  {
+    src ? (
+      <img src={src} alt={alt} loading={loading} decoding="async" />
+    ) : (
+      <div class="slot__empty" role="img" aria-label={`Placeholder for ${alt}`}>
+        <svg class="slot__ripple" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 190 Q 50 182 100 190 T 200 190 T 300 190 T 400 190" />
+          <path d="M0 214 Q 55 204 110 214 T 220 214 T 330 214 T 440 214" />
+          <path d="M0 240 Q 60 228 120 240 T 240 240 T 360 240 T 480 240" />
+        </svg>
+        <div class="slot__label">
+          <span class="slot__path">public/{name}.webp</span>
+          {hint && <span class="slot__hint">{hint}</span>}
+        </div>
+      </div>
+    )
+  }
+</figure>
+
+<style>
+  .slot {
+    margin: 0;
+    width: 100%;
+    aspect-ratio: var(--ratio);
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--ink-06);
+  }
+
+  .slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .slot__empty {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    background: linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--water-pale) 88%, var(--paper)) 0%,
+      color-mix(in srgb, var(--water-mid) 62%, var(--paper)) 100%
+    );
+  }
+
+  .slot__ripple {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: color-mix(in srgb, var(--water-deep) 22%, transparent);
+    stroke-width: 1.5;
+  }
+
+  .slot__label {
+    position: relative;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .slot__path {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0;
+    color: var(--water-deep);
+  }
+
+  .slot__hint {
+    font-size: 11px;
+    letter-spacing: 0;
+    color: color-mix(in srgb, var(--water-deep) 70%, transparent);
+  }
+</style>

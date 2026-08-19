@@ -1,0 +1,260 @@
+---
+/**
+ * Project detail. One page per entry in products.ts, reached from any
+ * card on the home page. Every page carries two ways back: the nav's
+ * "Back to the shore" and an explicit return block at the foot.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AssetSlot from '../../components/AssetSlot.astro';
+import { projects, roles, type Project } from '../../data/products';
+import { site } from '../../data/site';
+import { chapters, otherWork } from '../../data/home';
+import { href } from '../../lib/url';
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: Project;
+}
+const { project } = Astro.props;
+
+const roleLabel = roles.find((r) => r.key === project.role)?.label ?? '';
+
+/**
+ * PM and BI projects are described as design / tech / eval / impact;
+ * project-management work as background / actions / method / effect.
+ * Render whichever set this project actually filled in.
+ */
+const SCHEMAS = {
+  product: [
+    ['design', 'The Design Decision'],
+    ['tech', 'How It Was Built'],
+    ['eval', 'How It Was Evaluated'],
+    ['impact', 'What Changed'],
+  ],
+  delivery: [
+    ['background', 'The Situation'],
+    ['actions', 'What I Did'],
+    ['method', 'Method'],
+    ['effect', 'The Outcome'],
+  ],
+} as const;
+
+const schema = project.elements.background ? SCHEMAS.delivery : SCHEMAS.product;
+const sections = schema
+  .map(([key, label]) => ({ label, body: project.elements[key] }))
+  .filter((s): s is { label: string; body: string } => Boolean(s.body));
+
+/** Blurb + asset already written for the card; reuse rather than restate. */
+const card = [...chapters.flatMap((c) => c.features), ...otherWork].find(
+  (f) => f.project === project.id,
+);
+
+const idx = projects.findIndex((p) => p.id === project.id);
+const next = projects[(idx + 1) % projects.length];
+
+const title = `${project.title} — ${site.name}`;
+const description = card?.blurb ?? `${project.title}, ${project.client}.`;
+---
+
+<BaseLayout title={title} description={description} nav="detail">
+  <!-- ── Title, on open water ─────────────────────────────────── -->
+  <section class="head porthole">
+    <div class="shell">
+      <p class="head__eyebrow" data-reveal>{roleLabel} · {project.client}</p>
+      <h1 class="head__title" data-reveal style="--reveal-delay:70ms">{project.title}</h1>
+    </div>
+  </section>
+
+  <!-- ── Body ─────────────────────────────────────────────────── -->
+  <div class="sheet">
+    <div class="shell">
+      <article class="body">
+        {
+          card && (
+            <p class="body__lede" data-reveal>
+              {card.blurb}
+            </p>
+          )
+        }
+
+        {
+          card && (
+            <div class="body__hero" data-reveal>
+              <AssetSlot
+                name={card.asset}
+                alt={project.title}
+                ratio={16 / 9}
+                hint="2400 × 1350 · the one image that explains this project"
+                loading="eager"
+              />
+            </div>
+          )
+        }
+
+        <div class="body__sections">
+          {
+            sections.map((s, i) => (
+              <section class="block split-4060" data-reveal style={`--reveal-delay:${i * 60}ms`}>
+                <h2 class="block__label">{s.label}</h2>
+                <p class="block__text">{s.body}</p>
+              </section>
+            ))
+          }
+        </div>
+
+        <!-- ── Back / next ──────────────────────────────────────── -->
+        <nav class="onward" aria-label="Continue">
+          <a class="onward__home" href={href('/')}>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4 6.5 10l6 6" /></svg>
+            <span>Back to the home page</span>
+          </a>
+
+          <a class="onward__next" href={href(`/work/${next.id}`)}>
+            <span class="eyebrow">Next project</span>
+            <span class="onward__nexttitle">{next.title}</span>
+          </a>
+        </nav>
+      </article>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /* ── Head ─────────────────────────────────────────────────── */
+  .head {
+    display: flex;
+    align-items: flex-end;
+    min-height: 62svh;
+    padding-block: 150px 70px;
+  }
+
+  .head__eyebrow {
+    font-size: var(--text-meta);
+    color: var(--ink-70);
+    text-shadow: 0 1px 20px rgb(255 253 250 / 0.8);
+  }
+
+  .head__title {
+    margin-top: 14px;
+    max-width: 18ch;
+    font-size: var(--text-hero);
+    text-shadow: 0 2px 40px rgb(255 253 250 / 0.75);
+  }
+
+  /* ── Body ─────────────────────────────────────────────────── */
+  .body {
+    padding-block: 72px 96px;
+  }
+
+  .body__lede {
+    max-width: 62ch;
+    font-size: var(--text-lead);
+    color: var(--ink-70);
+  }
+
+  .body__hero {
+    margin-top: 44px;
+  }
+
+  .body__sections {
+    margin-top: 20px;
+  }
+
+  .block {
+    padding-block: 34px;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .block__label {
+    font-size: var(--text-h5);
+    padding-right: 24px;
+  }
+
+  .block__text {
+    max-width: 68ch;
+    font-size: var(--text-body);
+    color: var(--ink-70);
+  }
+
+  /* ── Onward ───────────────────────────────────────────────── */
+  .onward {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 40px;
+    padding-top: 34px;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .onward__home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 50px;
+    padding: 0 24px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--on-dark);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    transition: background 0.3s;
+  }
+
+  .onward__home:hover {
+    background: var(--water-deep);
+  }
+
+  .onward__home svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: translate 0.3s var(--ease-out-soft);
+  }
+
+  .onward__home:hover svg {
+    translate: -3px 0;
+  }
+
+  .onward__next {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: right;
+  }
+
+  .onward__nexttitle {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--text-h5);
+    line-height: 1.1;
+    transition: color 0.3s;
+  }
+
+  .onward__next:hover .onward__nexttitle {
+    color: var(--water-mid);
+  }
+
+  @media (max-width: 700px) {
+    .onward {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .onward__next {
+      text-align: left;
+    }
+    .block__label {
+      padding-right: 0;
+    }
+  }
+</style>

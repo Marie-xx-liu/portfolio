@@ -1,0 +1,23 @@
+---
+interface Props {
+  eyebrow: string;
+  title: string;
+  intro?: string;
+  /** Accent words highlighted in the title (simple substring wrap). */
+}
+const { eyebrow, title, intro } = Astro.props;
+---
+
+<section class="container-editorial pt-36 md:pt-44">
+  <p class="eyebrow reveal mb-5">{eyebrow}</p>
+  <h1 class="reveal max-w-[20ch] text-hero font-display" data-reveal-delay="60">
+    {title}
+  </h1>
+  {
+    intro && (
+      <p class="reveal mt-7 max-w-[58ch] text-subtitle text-ink-muted" data-reveal-delay="120">
+        {intro}
+      </p>
+    )
+  }
+</section>

@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import ExperienceTimeline from '../components/ExperienceTimeline.tsx';
+import { seo, site } from '../data/site';
+import { experiences, earlierRoles, education, skills } from '../data/experiences';
+---
+
+<BaseLayout title={seo['/profile'].title} description={seo['/profile'].description}>
+  <PageHeader
+    eyebrow="Profile · Who am I"
+    title="The question isn’t what AI can replace. It’s who the saved time belongs to."
+  />
+
+  <!-- AI VIEWPOINT INTRO -->
+  <section class="container-narrow py-20">
+    <p class="reveal text-xl leading-relaxed text-ink-muted md:text-2xl">
+      AI is a <span class="text-ink">time lever.</span> The same productivity gain can be
+      cashed out as fewer people — a <em>substitution trap</em> — or as less time — an
+      <em>embedding dividend</em>. Which path we take is an institutional choice, not a
+      technical inevitability.
+    </p>
+    <a href={site.aiThesisUrl} class="link-underline reveal mt-6 inline-block font-mono text-sm text-accent">
+      Read the full essay →
+    </a>
+  </section>
+
+  <!-- EXPERIENCE TIMELINE (Tier-S) -->
+  <section class="container-editorial py-12">
+    <div class="reveal mb-10 flex items-baseline justify-between gap-4">
+      <p class="eyebrow">Experience</p>
+      <p class="font-mono text-xs text-ink-muted">Click a role to expand · open for the full story</p>
+    </div>
+    <ExperienceTimeline client:load experiences={experiences} />
+
+    <!-- Earlier roles -->
+    <div class="reveal mt-10 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
+      {
+        earlierRoles.map((r) => (
+          <div class="bg-bg p-6">
+            <p class="font-display text-lg">{r.org}</p>
+            <p class="mt-1 text-sm text-ink-muted">{r.role}</p>
+            <p class="mt-2 font-mono text-xs text-ink-muted">{r.dates} · {r.location}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- EDUCATION -->
+  <section class="container-editorial py-12">
+    <p class="eyebrow reveal mb-8">Education</p>
+    <div class="space-y-6">
+      {
+        education.map((e) => (
+          <div class="reveal grid gap-2 border-b border-line pb-6 md:grid-cols-[1fr_auto]">
+            <div>
+              <h3 class="font-display text-xl">{e.degree}</h3>
+              <p class="mt-1 text-ink-muted">{e.school}{e.note ? ` · ${e.note}` : ''}</p>
+            </div>
+            <span class="font-mono text-sm text-ink-muted">{e.dates}</span>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section class="container-editorial py-12">
+    <p class="eyebrow reveal mb-8">Skills · Certs · Interests</p>
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {
+        Object.entries(skills).map(([group, items]) => (
+          <div class="reveal">
+            <p class="font-mono text-xs uppercase tracking-[0.14em] text-ink-muted">{group}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              {items.map((it) => (
+                <span class="rounded-full border border-line px-3 py-1 text-sm">{it}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

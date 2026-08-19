@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import ContactForm from '../components/ContactForm.tsx';
+import { seo, site } from '../data/site';
+---
+
+<BaseLayout title={seo['/contact'].title} description={seo['/contact'].description}>
+  <PageHeader
+    eyebrow="Contact"
+    title="Let’s talk."
+    intro="Open to AI product, strategy, data, and delivery roles. The fastest way to reach me is email — or leave a note below."
+  />
+
+  <div class="container-editorial grid gap-16 py-16 lg:grid-cols-[0.9fr_1.1fr]">
+    <!-- Direct -->
+    <div class="reveal">
+      <p class="eyebrow mb-4">Direct</p>
+      <button
+        id="copy-email"
+        class="link-underline block text-left font-display text-2xl md:text-3xl"
+        data-email={site.email}
+      >
+        {site.email}
+      </button>
+      <span id="copy-status" class="mt-2 block font-mono text-xs text-accent" aria-live="polite"></span>
+
+      <a href={`mailto:${site.email}`} class="btn btn-outline mt-6">Open mail app →</a>
+
+      <div class="mt-12 space-y-3 font-mono text-sm text-ink-muted">
+        <p>{site.location}</p>
+        <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" class="link-underline block w-fit text-ink">
+          LinkedIn ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="reveal">
+      <p class="eyebrow mb-4">Leave a note</p>
+      <ContactForm client:visible endpoint={site.formEndpoint} />
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const btn = document.getElementById('copy-email');
+  const status = document.getElementById('copy-status');
+  btn?.addEventListener('click', async () => {
+    const email = btn.getAttribute('data-email') || '';
+    try {
+      await navigator.clipboard.writeText(email);
+      if (status) status.textContent = 'Copied to clipboard ✓';
+    } catch {
+      if (status) status.textContent = email;
+    }
+  });
+</script>
