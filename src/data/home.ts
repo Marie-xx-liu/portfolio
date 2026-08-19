@@ -99,7 +99,7 @@ export const chapters: WorkChapter[] = [
         project: 'pm-rag-eval',
         kind: 'product',
         stage: 'platform',
-        title: 'Multimodal RAG Evaluation Framework',
+        title: 'Multimodal RAG Knowledge Product',
         blurb:
           'A question-type × input-modality × output-modality matrix with externally annotated ground truth. Became the company standard verification methodology.',
         asset: 'work/rag-eval',
@@ -308,6 +308,19 @@ export const stageCounts = allFeatures.reduce<Record<string, number>>((acc, f) =
   if (f.stage) acc[f.stage] = (acc[f.stage] ?? 0) + 1;
   return acc;
 }, {});
+
+/**
+ * Stops for the scroll pilot's locator. Company stops are derived from
+ * `chapters`, so adding an employer adds a stop without touching the
+ * component.
+ */
+export const pilotStops: { id: string; label: string }[] = [
+  { id: 'arc', label: 'The arc' },
+  ...chapters.map((c) => ({ id: c.id, label: c.org })),
+  { id: 'experience', label: 'Experience' },
+  { id: 'ahead', label: 'What’s ahead' },
+  { id: 'contact', label: 'Contact' },
+];
 
 /** Detail-page lookup used by /work/[slug]. */
 export const projectById = Object.fromEntries(projects.map((p) => [p.id, p]));

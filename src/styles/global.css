@@ -215,11 +215,20 @@
     padding-inline: var(--page-pad);
   }
 
-  /* The cream sheet that scrolls over the fixed water. */
+  /* The cream sheet that scrolls over the fixed water.
+     Tinted toward the water at its top and bottom edges so each sheet
+     looks like it surfaced from the water it meets, instead of being a
+     flat panel dropped on top. */
   .sheet {
     position: relative;
     z-index: var(--z-sheet);
-    background: var(--paper);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--water-pale) 22%, var(--paper)) 0%,
+      var(--paper) 16%,
+      var(--paper) 84%,
+      color-mix(in srgb, var(--water-pale) 22%, var(--paper)) 100%
+    );
   }
 
   /* A full-bleed transparent band that reveals the water behind.

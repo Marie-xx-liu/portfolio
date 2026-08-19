@@ -75,7 +75,7 @@ export const projects: Project[] = [
   {
     id: 'pm-rag-eval',
     role: 'pm',
-    title: 'Multimodal RAG Evaluation Framework',
+    title: 'Multimodal RAG Knowledge Product',
     client: 'ZiDongTaiChu (CAS)',
     videoId: '[VIDEO-PM-03]',
     outputImageId: '[IMG-pm-rag-output]',

@@ -3,6 +3,8 @@ import '../styles/global.css';
 import { site, personJsonLd } from '../data/site';
 import WaterBackdrop from '../components/backdrop/WaterBackdrop.astro';
 import CapsuleNav from '../components/CapsuleNav.astro';
+import CurrentRails from '../components/CurrentRails.astro';
+import ScrollPilot from '../components/ScrollPilot.astro';
 import { href } from '../lib/url';
 
 interface Props {
@@ -13,6 +15,9 @@ interface Props {
   nav?: 'home' | 'detail';
   /** Off for the styleguide, which supplies its own chrome. */
   chrome?: boolean;
+  /** The boat scrollbar + section locator. Only earns its place on a
+   *  page long enough to get lost in. */
+  pilot?: boolean;
 }
 
 const {
@@ -21,6 +26,7 @@ const {
   noindex = false,
   nav = 'home',
   chrome = true,
+  pilot = false,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, site.url).href;
@@ -65,7 +71,9 @@ const ogImage = new URL(href('/og-default.png'), site.url).href;
     <a href="#main" class="skip">Skip to content</a>
 
     {chrome && <WaterBackdrop />}
+    {chrome && <CurrentRails />}
     {chrome && <CapsuleNav variant={nav} />}
+    {chrome && pilot && <ScrollPilot />}
 
     <main id="main">
       <slot />
@@ -74,8 +82,10 @@ const ogImage = new URL(href('/og-default.png'), site.url).href;
     <script>
       import { initSmoothScroll } from '../lib/smoothScroll';
       import { initReveal } from '../lib/reveal';
+      import { initSurface } from '../lib/surface';
       initSmoothScroll();
       initReveal();
+      initSurface();
     </script>
 
     <style is:global>

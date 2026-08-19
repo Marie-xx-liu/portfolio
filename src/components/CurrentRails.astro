@@ -1,0 +1,102 @@
+---
+/**
+ * Water carried up onto the cream sheet.
+ *
+ * Two faint ripple columns in the page gutters that drift downward as
+ * you scroll, so the scrolling sections read as continuing the water
+ * rather than sitting on a flat field of paper.
+ *
+ * They live strictly in the gutter — the space outside the 1280px
+ * content shell — and hide themselves when there is no gutter to live
+ * in, rather than sliding under the text.
+ */
+---
+
+<div class="rails" aria-hidden="true">
+  <div class="rails__side rails__side--left"></div>
+  <div class="rails__side rails__side--right"></div>
+</div>
+
+<style>
+  .rails {
+    position: fixed;
+    inset: 0;
+    z-index: 2; /* over the cream sheet, under the nav */
+    pointer-events: none;
+    /* Whatever is left over once the content shell has taken its share. */
+    --gutter: calc((100vw - 1280px) / 2);
+  }
+
+  .rails__side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--gutter);
+    opacity: 0;
+    transition: opacity 0.7s var(--ease-out-soft);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='96'%3E%3Cg fill='none' stroke='%231b3b4b' stroke-opacity='0.22' stroke-width='1'%3E%3Cpath d='M-10 20 Q20 12 50 20 T110 20 T170 20'/%3E%3Cpath d='M-10 52 Q26 44 62 52 T134 52'/%3E%3Cpath d='M-10 78 Q18 71 46 78 T102 78 T158 78'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat-y;
+    background-position: center var(--drift, 0px);
+    /* Fade toward the content so the ripples never compete with type. */
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0%, transparent 100%);
+  }
+
+  /* Ripples belong on the paper. Over the water they would only compete
+     with the real thing. */
+  :global(html[data-surface='sheet']) .rails__side {
+    opacity: 0.5;
+  }
+
+  .rails__side--left {
+    left: 0;
+  }
+
+  .rails__side--right {
+    right: 0;
+    -webkit-mask-image: linear-gradient(270deg, #000 0%, transparent 100%);
+    mask-image: linear-gradient(270deg, #000 0%, transparent 100%);
+  }
+
+  /* Below this there is no gutter, and ripples would sit under the copy. */
+  @media (max-width: 1400px) {
+    .rails {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rails__side {
+      background-position: center 0;
+    }
+  }
+</style>
+
+<script>
+  const rails = document.querySelector<HTMLElement>('.rails');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (rails && !reduced) {
+    const TILE = 96; // must match the SVG tile height
+    let ticking = false;
+
+    const update = () => {
+      // Drift slower than the page so it reads as a current being passed,
+      // not as wallpaper glued to the scroll.
+      rails.style.setProperty('--drift', `${(window.scrollY * 0.35) % TILE}px`);
+      ticking = false;
+    };
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+
+    update();
+  }
+</script>

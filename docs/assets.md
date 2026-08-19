@@ -59,7 +59,7 @@
 | 文件 | 对应项目 | 建议尺寸 |
 |---|---|---|
 | `public/work/agent-platform.webp` | Enterprise AI Agent Platform 0→1 | 876×656（4:3） |
-| `public/work/rag-eval.webp` | Multimodal RAG Evaluation Framework | 1362×1022（4:3） |
+| `public/work/rag-eval.webp` | Multimodal RAG Knowledge Product | 1362×1022（4:3） |
 | `public/work/credit-intelligence.webp` | Multi-Agent Credit Intelligence | 1362×1022 |
 | `public/work/askbi.webp` | Metric System & AskBI | 876×656 |
 | `public/work/smart-factory.webp` | AI Factory Intelligence Platform | 876×656 |

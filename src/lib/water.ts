@@ -203,6 +203,14 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
   let progress = 0;
   let targetProgress = 0;
 
+  /** Pointer steering. `null` until the visitor actually moves a mouse,
+   *  so the boat never jumps on load or on touch-only devices. */
+  let pointerX: number | null = null;
+  /** The boat's own eased x — it follows the pointer with real lag, which
+   *  is what makes it read as a boat being steered and not a cursor. */
+  let boatX: number | null = null;
+  let boatVel = 0;
+
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = canvas.clientWidth;
@@ -357,8 +365,27 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     const near = 1 - progress;
     const boatScale = Math.max(0.55, Math.min(1.5, w / 1400)) * (0.85 + near * 0.5);
     const bob = reduced ? 0 : Math.sin(t * 0.9) * 3 + Math.sin(t * 1.7) * 1.2;
-    const tilt = reduced ? 0 : Math.sin(t * 0.9 + 0.6) * 0.02;
-    const bx = w * (0.3 + progress * 0.52);
+
+    // Where scroll alone would put the boat.
+    const drift = w * (0.3 + progress * 0.52);
+
+    // The pointer only has authority over the hero. Past it, steering
+    // hands back to the scroll position rather than fighting it.
+    const authority = reduced || pointerX === null ? 0 : Math.max(0, 1 - progress / 0.16);
+    const steerTo = pointerX === null ? drift : clamp(pointerX, w * 0.1, w * 0.9);
+    const target = drift + (steerTo - drift) * authority;
+
+    if (boatX === null) boatX = target;
+    const prevX = boatX;
+    // Deliberately heavy: the lag is the whole feel of steering a boat.
+    boatX += (target - boatX) * 0.055;
+    boatVel = boatVel * 0.85 + (boatX - prevX) * 0.15;
+
+    // Bank into the turn, on top of the idle roll.
+    const heel = clamp(boatVel * 0.03, -0.16, 0.16);
+    const tilt = (reduced ? 0 : Math.sin(t * 0.9 + 0.6) * 0.02) + heel;
+
+    const bx = boatX;
     const by = horizon + h * (0.05 + near * 0.19) + bob;
 
     // Reflection first, so the hull sits on top of it.
@@ -401,6 +428,18 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     if (reduced) frame(0);
   }
 
+  function onPointerMove(e: PointerEvent) {
+    // Touch drives scrolling, not steering — hijacking it would fight
+    // the gesture the visitor actually made.
+    if (e.pointerType === 'touch') return;
+    pointerX = e.clientX;
+  }
+
+  function onPointerLeave() {
+    // Release the helm: the boat eases back onto its scroll track.
+    pointerX = null;
+  }
+
   function onVisibility() {
     if (reduced) return;
     if (document.hidden) {
@@ -418,6 +457,10 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
+  if (!reduced) {
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave);
+  }
   document.addEventListener('visibilitychange', onVisibility);
 
   if (reduced) frame(0);
@@ -429,6 +472,8 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerleave', onPointerLeave);
       document.removeEventListener('visibilitychange', onVisibility);
     },
   };

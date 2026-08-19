@@ -1,0 +1,338 @@
+---
+/**
+ * The boat as the page's scrollbar.
+ *
+ * A vertical current down the right gutter carrying a small boat whose
+ * position is the scroll position. The boat can be dragged to scrub the
+ * page, and the stops beside it form a locator for a page long enough
+ * that scrolling alone loses you.
+ *
+ * Stop marks are placed at each section's real offset in the document,
+ * not spaced evenly, so the rail doubles as a minimap: a tall section
+ * looks tall.
+ */
+import { pilotStops } from '../data/home';
+---
+
+<nav class="pilot" aria-label="Page sections">
+  <div class="pilot__track" data-pilot-track>
+    <span class="pilot__line"></span>
+
+    <ul class="pilot__stops">
+      {
+        pilotStops.map((stop) => (
+          <li class="pilot__stop" data-pilot-stop={stop.id}>
+            <a class="pilot__link" href={`#${stop.id}`}>
+              <span class="pilot__label">{stop.label}</span>
+              <span class="pilot__tick" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <!-- Position is set from scroll; the drag handle is the boat itself. -->
+    <div class="pilot__boat" data-pilot-boat title="Drag to scrub the page">
+      <svg viewBox="0 0 40 26" aria-hidden="true">
+        <path
+          d="M2 16.5c2.2-1.5 5.6-2.1 12-2.1s9.8.6 12 2.1c-2.2 1.9-6.4 2.8-12 2.8s-9.8-.9-12-2.8z"
+        ></path>
+        <circle cx="16" cy="9.6" r="2.1"></circle>
+        <rect x="15.1" y="10.8" width="1.8" height="4"></rect>
+        <path d="M20 6.5 26 12" stroke-width="1.6" fill="none"></path>
+      </svg>
+    </div>
+  </div>
+</nav>
+
+<style>
+  /* Over open water — the hero and the contact block — the rail flips to
+     the light palette, or it disappears into the night water entirely. */
+  :global(html[data-surface='water']) .pilot {
+    --pilot-ink: var(--on-dark);
+    --pilot-line: rgb(255 253 250 / 0.35);
+    --pilot-muted: rgb(255 253 250 / 0.7);
+  }
+
+  .pilot {
+    position: fixed;
+    top: 50%;
+    right: max(14px, calc((100vw - 1280px) / 2 - 46px));
+    translate: 0 -50%;
+    z-index: 40;
+    height: 58svh;
+    max-height: 520px;
+  }
+
+  .pilot__track {
+    position: relative;
+    height: 100%;
+    width: 26px;
+  }
+
+  /* The current the boat rides down. */
+  .pilot__line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    translate: -50% 0;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      var(--pilot-line, var(--ink-12)) 8%,
+      var(--pilot-line, var(--ink-12)) 92%,
+      transparent
+    );
+    transition: background 0.6s var(--ease-out-soft);
+  }
+
+  .pilot__stops {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pilot__stop {
+    position: absolute;
+    left: 0;
+    /* Set from the section's real document offset. */
+    top: var(--at, 0%);
+    translate: 0 -50%;
+  }
+
+  .pilot__link {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    width: 26px;
+    height: 20px;
+  }
+
+  .pilot__tick {
+    flex: none;
+    width: 7px;
+    height: 1px;
+    background: var(--pilot-line, var(--ink-12));
+    transition:
+      width 0.3s var(--ease-out-soft),
+      background 0.3s;
+  }
+
+  .pilot__label {
+    position: absolute;
+    right: 20px;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--pilot-muted, var(--ink-45));
+    opacity: 0;
+    translate: 6px 0;
+    transition:
+      opacity 0.3s var(--ease-out-soft),
+      translate 0.3s var(--ease-out-soft);
+    pointer-events: none;
+  }
+
+  /* Labels on demand — hovering the rail, or the section you are in. */
+  .pilot:hover .pilot__label,
+  .pilot:focus-within .pilot__label,
+  .pilot__stop[data-active] .pilot__label {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .pilot__stop[data-active] .pilot__label {
+    color: var(--pilot-ink, var(--water-deep));
+  }
+
+  .pilot__stop[data-active] .pilot__tick,
+  .pilot__link:hover .pilot__tick {
+    width: 14px;
+    background: var(--water-mid);
+  }
+
+  /* ── The boat ─────────────────────────────────────────────────── */
+  .pilot__boat {
+    position: absolute;
+    left: 50%;
+    top: var(--pos, 0%);
+    translate: -50% -50%;
+    width: 34px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .pilot__boat svg {
+    width: 30px;
+    height: 20px;
+    overflow: visible;
+    fill: var(--pilot-ink, var(--water-deep));
+    stroke: var(--pilot-ink, var(--water-deep));
+    stroke-width: 0;
+    transition: fill 0.6s var(--ease-out-soft), stroke 0.6s var(--ease-out-soft);
+    /* Idle bob, so it reads as floating rather than pinned. */
+    animation: pilot-bob 3.4s ease-in-out infinite;
+  }
+
+  .pilot__boat[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .pilot__boat[data-dragging] svg {
+    animation: none;
+  }
+
+  @keyframes pilot-bob {
+    50% {
+      transform: translateY(1.5px) rotate(-1.5deg);
+    }
+  }
+
+  /* No gutter to sit in, and touch scrolling does not need a scrubber. */
+  @media (max-width: 1100px) {
+    .pilot {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pilot__boat svg {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  import { getLenis } from '../lib/smoothScroll';
+
+  const pilot = document.querySelector<HTMLElement>('.pilot');
+  const track = document.querySelector<HTMLElement>('[data-pilot-track]');
+  const boat = document.querySelector<HTMLElement>('[data-pilot-boat]');
+
+  if (pilot && track && boat) {
+    const stops = [...document.querySelectorAll<HTMLElement>('[data-pilot-stop]')];
+    const maxScroll = () => document.documentElement.scrollHeight - window.innerHeight;
+
+    /** Place each stop at its section's real share of the document. */
+    function layout() {
+      const max = maxScroll();
+      for (const stop of stops) {
+        const section = document.getElementById(stop.dataset.pilotStop!);
+        if (!section) {
+          stop.style.display = 'none';
+          continue;
+        }
+        const offset = section.getBoundingClientRect().top + window.scrollY;
+        stop.style.setProperty('--at', `${Math.min(100, (offset / (max || 1)) * 100)}%`);
+      }
+    }
+
+    let dragging = false;
+
+    function render() {
+      const max = maxScroll();
+      const p = max > 0 ? window.scrollY / max : 0;
+      boat!.style.setProperty('--pos', `${p * 100}%`);
+
+      // Mark the last stop we have reached, so the label persists.
+      let activeIndex = -1;
+      for (let i = 0; i < stops.length; i++) {
+        const section = document.getElementById(stops[i].dataset.pilotStop!);
+        if (!section) continue;
+        if (section.getBoundingClientRect().top <= window.innerHeight * 0.4) activeIndex = i;
+      }
+      stops.forEach((s, i) =>
+        i === activeIndex ? s.setAttribute('data-active', '') : s.removeAttribute('data-active'),
+      );
+    }
+
+    /** Map a pointer y onto the document and go there. */
+    function scrubTo(clientY: number) {
+      const rect = track!.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+      const target = p * maxScroll();
+      const lenis = getLenis();
+      if (lenis) lenis.scrollTo(target, { immediate: true });
+      else window.scrollTo(0, target);
+    }
+
+    boat.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      boat.setAttribute('data-dragging', '');
+      // Capture keeps the drag alive when the pointer leaves the 34px
+      // handle, which it immediately does. It throws if the pointer is
+      // already gone, and losing capture is survivable — the window
+      // listeners below still end the drag.
+      try {
+        boat.setPointerCapture(e.pointerId);
+      } catch {
+        /* no capture; drag still tracked via window listeners */
+      }
+      e.preventDefault();
+    });
+
+    // Tracked on the window, not the handle: without capture the pointer
+    // outruns a 34px target instantly.
+    window.addEventListener('pointermove', (e) => {
+      if (dragging) scrubTo(e.clientY);
+    });
+
+    const endDrag = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      boat.removeAttribute('data-dragging');
+      try {
+        if (boat.hasPointerCapture(e.pointerId)) boat.releasePointerCapture(e.pointerId);
+      } catch {
+        /* nothing to release */
+      }
+    };
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    // Clicking the current itself jumps there, like a scrollbar trough.
+    track.addEventListener('pointerdown', (e) => {
+      if (e.target === boat || boat.contains(e.target as Node)) return;
+      if ((e.target as HTMLElement).closest('.pilot__link')) return; // let the anchor work
+      scrubTo(e.clientY);
+    });
+
+    // Stop links scroll smoothly through Lenis, matching the arc rail.
+    for (const stop of stops) {
+      stop.querySelector('a')?.addEventListener('click', (event) => {
+        const target = document.getElementById(stop.dataset.pilotStop!);
+        const lenis = getLenis();
+        if (!target || !lenis) return;
+        event.preventDefault();
+        lenis.scrollTo(target, { offset: -96 });
+      });
+    }
+
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        render();
+        ticking = false;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => {
+      layout();
+      render();
+    });
+    window.addEventListener('load', layout);
+
+    layout();
+    render();
+  }
+</script>
