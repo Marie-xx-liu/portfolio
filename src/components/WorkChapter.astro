@@ -13,6 +13,16 @@ interface Props {
   chapter: WorkChapter;
 }
 const { chapter } = Astro.props;
+
+// Products lead, deployments follow. A chapter with only engagements
+// (Deloitte) renders one group, not an empty "Products" heading.
+const products = chapter.features.filter((f) => f.kind === 'product');
+const engagements = chapter.features.filter((f) => f.kind !== 'product');
+
+const groups = [
+  { label: 'Products', items: products },
+  { label: 'Deployed as', items: engagements },
+].filter((g) => g.items.length > 0);
 ---
 
 <section class="chapter" id={chapter.id}>
@@ -20,7 +30,10 @@ const { chapter } = Astro.props;
     <h3 class="chapter__org">{chapter.org}</h3>
     <div class="chapter__meta">
       <span>{chapter.role}</span>
-      <span class="chapter__dates">{chapter.dates}</span>
+      <span class="chapter__right">
+        <span class="chapter__stage">{chapter.stageLabel}</span>
+        <span class="chapter__dates">{chapter.dates}</span>
+      </span>
     </div>
   </header>
 
@@ -42,9 +55,21 @@ const { chapter } = Astro.props;
     </div>
   </div>
 
-  <div class="chapter__cards">
-    {chapter.features.map((f, i) => <FeatureCard feature={f} delay={i * 90} />)}
-  </div>
+  {
+    groups.map((group) => (
+      <section class="group">
+        <header class="group__head" data-reveal>
+          <span class="group__label">{group.label}</span>
+          <span class="group__rule" />
+        </header>
+        <div class="chapter__cards">
+          {group.items.map((f, i) => (
+            <FeatureCard feature={f} delay={i * 90} />
+          ))}
+        </div>
+      </section>
+    ))
+  }
 </section>
 
 <style>
@@ -72,6 +97,22 @@ const { chapter } = Astro.props;
     gap: 16px;
     font-size: var(--text-sm);
     color: var(--ink-70);
+  }
+
+  .chapter__right {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    white-space: nowrap;
+  }
+
+  /* Subordinate to the company name, as a classification marker rather
+     than a heading. */
+  .chapter__stage {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--water-mid);
   }
 
   .chapter__dates {
@@ -114,18 +155,54 @@ const { chapter } = Astro.props;
   /* The reference alternates 486/730 and 730/486 between rows. Flex
      basis (not a fixed grid) lets each card's own `span` decide, so a
      chapter can lead narrow or lead wide with no new CSS. */
+  /* ── Product / deployment groups ──────────────────────────── */
+  .group + .group {
+    margin-top: 16px;
+  }
+
+  .group__head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 26px;
+  }
+
+  .group__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+    white-space: nowrap;
+  }
+
+  .group__rule {
+    flex: 1;
+    height: 1px;
+    background: var(--ink-12);
+  }
+
   .chapter__cards {
     display: flex;
+    flex-wrap: wrap;
     margin-inline: -24px;
     padding-top: 12px;
   }
 
   .chapter__cards > :global(.card--narrow) {
-    flex: 486 1 0;
+    flex: 0 0 40%;
   }
 
   .chapter__cards > :global(.card--wide) {
-    flex: 730 1 0;
+    flex: 0 0 60%;
+  }
+
+  /* A lone card takes the wide slot and leaves the rest as whitespace.
+     Growing was fine when every chapter held exactly two cards; now that
+     products and deployments are separate groups, a group of one would
+     otherwise stretch edge to edge. */
+  .chapter__cards > :global(.card:only-child) {
+    flex: 0 0 60%;
   }
 
   @media (max-width: 900px) {
@@ -140,9 +217,15 @@ const { chapter } = Astro.props;
       flex-direction: column;
       gap: 2px;
     }
+    .chapter__right {
+      gap: 12px;
+    }
     .chapter__cards {
       flex-direction: column;
       margin-inline: -16px;
+    }
+    .chapter__cards > :global(.card) {
+      flex: 0 0 auto;
     }
     .fact + .fact {
       padding-left: 0;

@@ -1,0 +1,178 @@
+---
+/**
+ * #arc — the maturity axis, used as an index into the page.
+ *
+ * This is a wayfinding strip, not a hero: it stays under 60% of the
+ * viewport and carries no imagery. Each segment reports how many cards
+ * sit at that stage and scrolls to the chapter where they live.
+ *
+ * The rail reads custom → commercialized while the chapters stay in
+ * reverse-chronological order, so the earliest stage is furthest down
+ * the page. That is intentional — recency ordering is what a reader
+ * scanning for current work expects.
+ */
+import { arc, stageCounts, STAGE_LABELS } from '../data/home';
+---
+
+<div class="arc">
+  <header class="arc__head" data-reveal>
+    <h2 class="arc__title">{arc.title}</h2>
+    <p class="arc__intro">{arc.intro}</p>
+  </header>
+
+  <ol class="rail" data-reveal style="--reveal-delay:100ms">
+    {
+      arc.stages.map((s, i) => (
+        <li class="rail__seg">
+          <a class="rail__link" href={`#${s.anchor}`} data-arc-target={s.anchor}>
+            <span class="rail__index">{String(i + 1).padStart(2, '0')}</span>
+            <span class="rail__label">{STAGE_LABELS[s.key]}</span>
+            <span class="rail__count">
+              {stageCounts[s.key] ?? 0}
+              <span class="rail__unit">{(stageCounts[s.key] ?? 0) === 1 ? 'case' : 'cases'}</span>
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</div>
+
+<style>
+  .arc {
+    max-height: 60svh;
+    padding-block: 84px 72px;
+  }
+
+  .arc__title {
+    font-size: var(--text-h2);
+    white-space: pre-line;
+  }
+
+  .arc__intro {
+    margin-top: 20px;
+    max-width: 60ch;
+    font-size: var(--text-sm);
+    color: var(--ink-70);
+  }
+
+  /* ── Rail ─────────────────────────────────────────────────────
+     Four equal segments sharing one baseline rule. Grid, not flex with
+     overflow — the brief rules out horizontal scrolling outright. */
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin: 44px 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .rail__seg {
+    position: relative;
+  }
+
+  /* The progression marker: a filled tick at the head of each segment. */
+  .rail__seg::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--water-mid);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s var(--ease-out-soft);
+  }
+
+  .rail__seg:hover::before,
+  .rail__seg:focus-within::before {
+    transform: scaleX(1);
+  }
+
+  .rail__link {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px 22px 0;
+  }
+
+  .rail__index {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-45);
+  }
+
+  .rail__label {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--text-h5);
+    line-height: 1.1;
+  }
+
+  .rail__count {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--water-mid);
+  }
+
+  .rail__unit {
+    color: var(--ink-45);
+  }
+
+  /* ── Mobile: a vertical list, never a scroller ────────────────── */
+  @media (max-width: 760px) {
+    .arc {
+      /* The cap is a desktop restraint; stacked, the list needs room. */
+      max-height: none;
+      padding-block: 56px 48px;
+    }
+
+    .rail {
+      grid-template-columns: 1fr;
+      border-top: 0;
+    }
+
+    .rail__seg {
+      border-top: 1px solid var(--ink-12);
+    }
+
+    .rail__link {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 12px;
+      padding: 16px 0;
+    }
+
+    .rail__label {
+      flex: 1;
+    }
+  }
+</style>
+
+<script>
+  // Anchor scrolling goes through the Lenis instance already running on
+  // the page. Native smooth scrolling is disabled under `html.lenis`, so
+  // without this the rail would jump instantly.
+  import { getLenis } from '../lib/smoothScroll';
+
+  document.querySelectorAll<HTMLAnchorElement>('[data-arc-target]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const id = link.dataset.arcTarget;
+      const target = id && document.getElementById(id);
+      if (!target) return; // let the browser handle a broken anchor
+
+      const lenis = getLenis();
+      if (!lenis) return; // reduced motion: native jump is correct
+
+      event.preventDefault();
+      lenis.scrollTo(target, { offset: -96 });
+      history.replaceState(null, '', `#${id}`);
+    });
+  });
+</script>

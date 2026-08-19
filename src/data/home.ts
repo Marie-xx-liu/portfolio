@@ -12,8 +12,24 @@
  */
 import { projects } from './products';
 
+/**
+ * The maturity axis from docs/products-ia-spec.md. It orders the work;
+ * `builtOn` is the separate relationship axis and does the linking. The
+ * two are not interchangeable — one drives layout, the other drives
+ * cross-references.
+ */
+export type Stage = 'custom' | 'productized' | 'platform' | 'commercialized';
+
+export const STAGE_LABELS: Record<Stage, string> = {
+  custom: 'Custom delivery',
+  productized: 'Productized',
+  platform: 'Platform',
+  commercialized: 'Commercialized',
+};
+
 export interface WorkFeature {
-  /** Project id → /work/<id>, or null for a card with no detail page. */
+  /** Project id → /work/<id>, or null for a card with no detail page.
+   *  Doubles as the in-page anchor that `builtOn` links to. */
   project: string | null;
   title: string;
   blurb: string;
@@ -22,6 +38,12 @@ export interface WorkFeature {
   /** 486px vs 730px column of the reference's 1216 grid. */
   span: 'narrow' | 'wide';
   href?: string;
+
+  /** A reusable asset, or one client deployment of one. */
+  kind?: 'product' | 'engagement';
+  stage?: Stage;
+  /** Engagements only: the `project` id of the product they are built on. */
+  builtOn?: string | null;
 }
 
 export interface WorkChapter {
@@ -29,6 +51,9 @@ export interface WorkChapter {
   org: string;
   role: string;
   dates: string;
+  /** Shown as a badge beside the dates. Free text, since one employer
+   *  can span two stages. */
+  stageLabel: string;
   /** Repeating strip under the header, as on the reference site. */
   marquee: string;
   headline: string;
@@ -49,6 +74,7 @@ export const chapters: WorkChapter[] = [
     org: 'ZiDongTaiChu',
     role: 'Senior Product Manager — AI Strategy & Solutions',
     dates: '2024.11 → 2026.05',
+    stageLabel: 'Platform · Commercialized',
     marquee: 'Incubated by the Chinese Academy of Sciences',
     headline:
       'Taking an enterprise AI Agent platform from zero to ten teams shipping — with no precedent inside the company and no authority over the models underneath',
@@ -61,6 +87,8 @@ export const chapters: WorkChapter[] = [
     features: [
       {
         project: 'pm-agent-platform',
+        kind: 'product',
+        stage: 'platform',
         title: 'Enterprise AI Agent Platform 0→1',
         blurb:
           'A low-code agent builder over the MCP / A2A / Skill ecosystems. 10+ B2B teams shipping their own agents, 200+ connected resources, deployment under a day.',
@@ -69,10 +97,34 @@ export const chapters: WorkChapter[] = [
       },
       {
         project: 'pm-rag-eval',
+        kind: 'product',
+        stage: 'platform',
         title: 'Multimodal RAG Evaluation Framework',
         blurb:
           'A question-type × input-modality × output-modality matrix with externally annotated ground truth. Became the company standard verification methodology.',
         asset: 'work/rag-eval',
+        span: 'wide',
+      },
+      {
+        project: 'pm-catl-rag',
+        kind: 'engagement',
+        stage: 'platform',
+        builtOn: 'pm-rag-eval',
+        title: 'RAG Quality Intelligence',
+        blurb:
+          'Surfacing defect root causes in real time on battery-cell lines by fusing visual defect detection with technical-document retrieval, for a global EV-battery leader.',
+        asset: 'work/quality-intelligence',
+        span: 'narrow',
+      },
+      {
+        project: 'pjm-ningxia-bid',
+        kind: 'engagement',
+        stage: 'commercialized',
+        builtOn: null,
+        title: '€38M Computing-Hub Bid',
+        blurb:
+          'One of China’s eight national computing-hub nodes. Unable to match competitors on capital commitment, I reframed the competition from "who invests more" to "who makes existing infrastructure more valuable." Won at panel.',
+        asset: 'work/computing-hub',
         span: 'wide',
       },
     ],
@@ -82,6 +134,7 @@ export const chapters: WorkChapter[] = [
     org: 'DiPEAK',
     role: 'AI Product Manager — Data Agent',
     dates: '2023.11 → 2024.11',
+    stageLabel: 'Productized',
     marquee: 'Data agents for the national banking sector',
     headline:
       'Deciding what to automate — and what to leave to the analyst — inside a credit decision at a national bank',
@@ -94,6 +147,9 @@ export const chapters: WorkChapter[] = [
     features: [
       {
         project: 'pm-citic-multiagent',
+        kind: 'engagement',
+        stage: 'productized',
+        builtOn: 'bi-citic-metrics',
         title: 'Multi-Agent Credit Intelligence',
         blurb:
           'Three scoped agents — data analysis, credit analysis, report synthesis — with a clear handoff between each and a human at the decision point. ~40% cut in analyst baseline workload.',
@@ -102,6 +158,8 @@ export const chapters: WorkChapter[] = [
       },
       {
         project: 'bi-citic-metrics',
+        kind: 'product',
+        stage: 'productized',
         title: 'Metric System & AskBI Query Engine',
         blurb:
           'A metric layer an agent — or an analyst — can query in natural language across 10,000+ metrics with cross-dimensional customisation.',
@@ -115,6 +173,7 @@ export const chapters: WorkChapter[] = [
     org: 'Deloitte Consulting',
     role: 'Digital Consultant — Enterprise Intelligence',
     dates: '2022.09 → 2023.11',
+    stageLabel: 'Custom delivery',
     marquee: 'Digital strategy → delivery, manufacturing & energy',
     headline:
       'Watching how senior executives actually reason about transformation — then leaving to go build the systems I kept advising on',
@@ -127,6 +186,9 @@ export const chapters: WorkChapter[] = [
     features: [
       {
         project: 'pjm-tbea-smartfactory',
+        kind: 'engagement',
+        stage: 'custom',
+        builtOn: null,
         title: 'AI Factory Intelligence Platform',
         blurb:
           'Production scheduling, energy management, and QC for a major power-equipment group — carried from board-level investment case through validated delivery. +15% SCM on-time, +10% capacity.',
@@ -135,6 +197,9 @@ export const chapters: WorkChapter[] = [
       },
       {
         project: 'bi-ifrs17',
+        kind: 'engagement',
+        stage: 'custom',
+        builtOn: null,
         title: 'IFRS 17 Consolidation Upgrade',
         blurb:
           'Cross-jurisdictional finance rule updates across 40+ regional entities. Sole owner of the UK subsidiary’s consolidated-reporting workflow, end to end.',
@@ -145,24 +210,13 @@ export const chapters: WorkChapter[] = [
   },
 ];
 
-/** The 2×2 grid — work that sits outside the employer chapters. */
-export const otherWork: WorkFeature[] = [
-  {
-    project: 'pjm-ningxia-bid',
-    title: '€38M Computing-Hub Bid',
-    blurb:
-      'One of China’s eight national computing-hub nodes. Unable to match competitors on capital commitment, I reframed the competition from "who invests more" to "who makes existing infrastructure more valuable." Won at panel.',
-    asset: 'work/computing-hub',
-    span: 'narrow',
-  },
-  {
-    project: 'pm-catl-rag',
-    title: 'RAG Quality Intelligence',
-    blurb:
-      'Surfacing defect root causes in real time on battery-cell lines by fusing visual defect detection with technical-document retrieval, for a global EV-battery leader.',
-    asset: 'work/quality-intelligence',
-    span: 'narrow',
-  },
+/**
+ * Not work — a link out to the Library, and one personal card. Kept
+ * deliberately outside the employer chapters and rendered at lower
+ * weight, so it cannot demote the case studies the way the old
+ * "Elsewhere on the water" block did.
+ */
+export const aside: WorkFeature[] = [
   {
     project: null,
     href: '/library',
@@ -218,6 +272,42 @@ export const ahead = {
     },
   ],
 };
+
+/** Every work card, flattened. */
+export const allFeatures: WorkFeature[] = chapters.flatMap((c) => c.features);
+
+/** Card lookup by anchor id — resolves `builtOn` into a title + link. */
+export const featureById = Object.fromEntries(
+  allFeatures.filter((f) => f.project).map((f) => [f.project as string, f]),
+);
+
+/**
+ * #arc — the maturity axis as an index into the page.
+ *
+ * Counts are derived, never written down: adding a card to a chapter
+ * updates the rail on its own. The rail runs custom → commercialized
+ * while the chapters stay in reverse-chronological order, so early
+ * stages sit further down the page — deliberate, since recency ordering
+ * is what a reader scanning for current work expects.
+ */
+export const arc = {
+  title: 'From one client’s problem\nto a product line',
+  // TODO: replace with final copy (~60 words).
+  intro:
+    'PLACEHOLDER — roughly sixty words on how the work moved from building one system for one client, to abstracting it into something reusable, to putting a platform under it, to selling the whole suite. Read the chapters below in reverse: the newest work sits first, the earliest at the bottom.',
+  stages: [
+    { key: 'custom', anchor: 'deloitte' },
+    { key: 'productized', anchor: 'dipeak' },
+    { key: 'platform', anchor: 'zidongtaichu' },
+    { key: 'commercialized', anchor: 'zidongtaichu' },
+  ] as { key: Stage; anchor: string }[],
+};
+
+/** How many cards sit at each stage. Derived from the chapters. */
+export const stageCounts = allFeatures.reduce<Record<string, number>>((acc, f) => {
+  if (f.stage) acc[f.stage] = (acc[f.stage] ?? 0) + 1;
+  return acc;
+}, {});
 
 /** Detail-page lookup used by /work/[slug]. */
 export const projectById = Object.fromEntries(projects.map((p) => [p.id, p]));

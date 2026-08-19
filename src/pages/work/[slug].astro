@@ -8,7 +8,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import AssetSlot from '../../components/AssetSlot.astro';
 import { projects, roles, type Project } from '../../data/products';
 import { site } from '../../data/site';
-import { chapters, otherWork } from '../../data/home';
+import { allFeatures } from '../../data/home';
 import { href } from '../../lib/url';
 
 export function getStaticPaths() {
@@ -51,9 +51,7 @@ const sections = schema
   .filter((s): s is { label: string; body: string } => Boolean(s.body));
 
 /** Blurb + asset already written for the card; reuse rather than restate. */
-const card = [...chapters.flatMap((c) => c.features), ...otherWork].find(
-  (f) => f.project === project.id,
-);
+const card = allFeatures.find((f) => f.project === project.id);
 
 const idx = projects.findIndex((p) => p.id === project.id);
 const next = projects[(idx + 1) % projects.length];

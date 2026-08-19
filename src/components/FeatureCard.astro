@@ -1,12 +1,19 @@
 ---
 /**
  * A work card in the reference's 486 / 730 grid. The image sits inset
- * inside the cell (the reference pads 24px), with the title and blurb
- * beneath. Cards that point at a project become links to their detail
- * page; the rest render as static blocks.
+ * inside the cell, with the title and blurb beneath.
+ *
+ * `kind` sets the visual weight: products read as the primary asset,
+ * engagements as one deployment of one. Engagements that name a
+ * `builtOn` product carry the reverse half of the Hub–Spoke link.
+ *
+ * The whole card is clickable via a stretched link on the title rather
+ * than an <a> wrapper, because the "Built on …" cross-reference is
+ * itself a link and anchors cannot nest.
  */
 import AssetSlot from './AssetSlot.astro';
 import type { WorkFeature } from '../data/home';
+import { featureById } from '../data/home';
 import { href as url } from '../lib/url';
 
 interface Props {
@@ -17,13 +24,16 @@ const { feature, delay = 0 } = Astro.props;
 
 const link = feature.href ?? (feature.project ? `/work/${feature.project}` : null);
 const href = link ? url(link) : null;
-const Tag = href ? 'a' : 'div';
 const hint = feature.span === 'wide' ? '1362 × 1022 (or 4:3)' : '876 × 656 (or 4:3)';
+
+// Resolved from data so a renamed card cannot leave a dangling reference.
+const parent = feature.builtOn ? featureById[feature.builtOn] : undefined;
 ---
 
-<Tag
+<div
   class:list={['card', `card--${feature.span}`, href && 'card--link']}
-  href={href}
+  id={feature.project ?? undefined}
+  data-kind={feature.kind}
   data-reveal
   style={`--reveal-delay:${delay}ms`}
 >
@@ -33,30 +43,72 @@ const hint = feature.span === 'wide' ? '1362 × 1022 (or 4:3)' : '876 × 656 (or
 
   <div class="card__body">
     <h4 class="card__title">
-      {feature.title}
       {
-        href && (
-          <svg class="card__arrow" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M5 15 15 5M7 5h8v8" />
-          </svg>
+        href ? (
+          <a class="card__link" href={href}>
+            {feature.title}
+            <svg class="card__arrow" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M5 15 15 5M7 5h8v8" />
+            </svg>
+          </a>
+        ) : (
+          feature.title
         )
       }
     </h4>
+
+    {
+      parent && (
+        <a class="card__builton" href={`#${feature.builtOn}`}>
+          Built on {parent.title}
+        </a>
+      )
+    }
+
     <p class="card__blurb">{feature.blurb}</p>
   </div>
-</Tag>
+</div>
 
 <style>
   .card {
+    position: relative;
     display: flex;
     flex-direction: column;
     padding: 24px;
+    border: 1px solid transparent;
     border-radius: 14px;
-    transition: background 0.4s var(--ease-out-soft);
+    transition:
+      background 0.4s var(--ease-out-soft),
+      border-color 0.4s var(--ease-out-soft);
   }
 
   .card--link:hover {
     background: var(--ink-06);
+  }
+
+  /* ── Weight by kind ───────────────────────────────────────────
+     A product is the reusable asset; an engagement is one instance of
+     it. The hierarchy is carried by border, scale and colour — not by
+     hiding anything. */
+  .card[data-kind='product'] {
+    border-color: var(--ink-12);
+    background: color-mix(in srgb, var(--paper-warm) 55%, transparent);
+  }
+
+  .card[data-kind='product']:hover {
+    border-color: color-mix(in srgb, var(--water-mid) 45%, transparent);
+  }
+
+  .card[data-kind='engagement'] {
+    border-color: transparent;
+  }
+
+  .card[data-kind='engagement'] .card__title {
+    font-size: var(--text-h5);
+  }
+
+  .card[data-kind='engagement'] .card__blurb {
+    color: var(--ink-45);
   }
 
   .card__media {
@@ -72,16 +124,37 @@ const hint = feature.span === 'wide' ? '1362 × 1022 (or 4:3)' : '876 × 656 (or
     scale: 1.02;
   }
 
+  /* Engagement imagery is held back so the product card leads the row. */
+  .card[data-kind='engagement'] .card__media {
+    opacity: 0.88;
+  }
+
   .card__body {
     padding-top: 22px;
   }
 
   .card__title {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
     font-size: var(--text-h5);
     line-height: 1.1;
+  }
+
+  .card[data-kind='product'] .card__title {
+    font-size: var(--text-h4);
+  }
+
+  .card__link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  /* Stretched link: the whole card is the hit target, but only this
+     anchor is in the tab order. */
+  .card__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
   }
 
   .card__arrow {
@@ -101,6 +174,26 @@ const hint = feature.span === 'wide' ? '1362 × 1022 (or 4:3)' : '876 × 656 (or
   .card--link:hover .card__arrow {
     translate: 2px -2px;
     stroke: var(--water-mid);
+  }
+
+  /* ── Built on … ───────────────────────────────────────────────
+     Sits above the stretched link so it stays independently clickable. */
+  .card__builton {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--water-mid);
+    border-bottom: 1px solid color-mix(in srgb, var(--water-mid) 35%, transparent);
+    transition: color 0.25s, border-color 0.25s;
+  }
+
+  .card__builton:hover {
+    color: var(--water-deep);
+    border-color: var(--water-deep);
   }
 
   .card__blurb {
