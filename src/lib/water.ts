@@ -184,9 +184,11 @@ function drawBoat(
  * One gust of wind, drawn at the pointer.
  *
  * Tapered streaks marching along the wind, each fading in and out on its
- * own cycle, with a small curl at the leading edge. A dark pass sits
- * under the light one — pure white alone disappears into the pale band
- * just below the horizon.
+ * own cycle, with a small curl at the leading edge. Every streak falls as
+ * it travels — upper-left to lower-right — and the cluster is sheared the
+ * same way, so the gust reads as coming down across the water rather than
+ * lying flat on it. A dark pass sits under the light one: pure white
+ * alone disappears into the pale band just below the horizon.
  */
 function drawGust(
   ctx: CanvasRenderingContext2D,
@@ -195,7 +197,15 @@ function drawGust(
   dir: number,
   t: number,
   power: number,
-  puffs: { o: number; y: number; len: number; dx: number; sp: number; a: number }[],
+  puffs: {
+    o: number;
+    y: number;
+    len: number;
+    dx: number;
+    sp: number;
+    a: number;
+    curl: number;
+  }[],
 ) {
   if (power < 0.02) return;
   ctx.save();
@@ -214,19 +224,30 @@ function drawGust(
     const yy = p.y + Math.sin(cyc * 0.8) * 3.4;
     const lw = 2.1 * (0.45 + fade * 0.95);
 
+    // The fall across the streak, and the matching shear across the
+    // cluster — higher streaks start further back up the wind.
+    const drop = len * 0.3;
+    const shear = p.y * 0.85;
+    const x0 = march - len + p.dx + shear;
+    const x1 = march + p.dx + shear;
+    const y0 = yy - drop;
+    const cx = (x0 + x1) / 2;
+    const cy = (y0 + yy) / 2 - drop * 0.14;
+
     ctx.strokeStyle = `rgba(24, 44, 58, ${alpha * 0.3})`;
     ctx.lineWidth = lw * 1.9;
     ctx.beginPath();
-    ctx.moveTo(march - len + p.dx, yy + 1);
-    ctx.quadraticCurveTo(march - len * 0.4 + p.dx, yy - 1, march + p.dx, yy + 1);
+    ctx.moveTo(x0, y0 + 1);
+    ctx.quadraticCurveTo(cx, cy + 1, x1, yy + 1);
     ctx.stroke();
 
     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
     ctx.lineWidth = lw;
     ctx.beginPath();
-    ctx.moveTo(march - len + p.dx, yy);
-    ctx.quadraticCurveTo(march - len * 0.4 + p.dx, yy - 2.2, march + p.dx, yy);
-    ctx.quadraticCurveTo(march + 10 + p.dx, yy - 0.6, march + 6.5 + p.dx, yy + 6.2);
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(cx, cy, x1, yy);
+    const k = p.curl;
+    ctx.quadraticCurveTo(x1 + 9 * k, yy + 2 * k, x1 + 4.2 * k, yy + 6.4 * k);
     ctx.stroke();
   }
 
@@ -274,10 +295,12 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
   let boatVel = 0;
 
   /**
-   * An east wind: it always blows from the east, so on screen it always
-   * runs right to left. The pointer sets how hard, never which way.
+   * A west wind, after Shelley's ode: it blows from the west, so on
+   * screen it always runs left to right — the same way the boat drifts
+   * as the page scrolls, so wind and voyage agree. The pointer sets how
+   * hard it blows, never which way.
    */
-  const WIND_DIR = -1;
+  const WIND_DIR = 1;
 
   /** Streaks making up one gust. Staggered so the tails do not comb up. */
   const puffs = Array.from({ length: 13 }, (_, i) => ({
@@ -287,6 +310,7 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     dx: (Math.random() - 0.5) * 52,
     sp: 0.6 + Math.random() * 0.8,
     a: 0.5 + Math.random() * 0.5,
+    curl: 0.45 + Math.random() * 0.75,
   }));
 
   function resize() {
