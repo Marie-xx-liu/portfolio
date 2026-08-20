@@ -197,6 +197,23 @@
     color: var(--ink);
   }
 
+  /* While the gust stands in for the cursor, hide the system one — but
+     never over something you are meant to click. */
+  html[data-wind='on'] {
+    cursor: none;
+  }
+
+  html[data-wind='on'] a,
+  html[data-wind='on'] button,
+  html[data-wind='on'] input,
+  html[data-wind='on'] summary {
+    cursor: pointer;
+  }
+
+  html[data-wind='on'] [data-pilot-boat] {
+    cursor: grab;
+  }
+
   :focus-visible {
     outline: 2px solid var(--water-mid);
     outline-offset: 3px;

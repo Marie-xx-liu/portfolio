@@ -2,19 +2,23 @@
 /**
  * Water carried up onto the cream sheet.
  *
- * Two faint ripple columns in the page gutters that drift downward as
- * you scroll, so the scrolling sections read as continuing the water
- * rather than sitting on a flat field of paper.
+ * Vertical strands running down both page gutters, drifting downward
+ * slower than the page, so the scrolling sections read as travelling
+ * with a current rather than sitting on a flat field of paper.
  *
- * They live strictly in the gutter — the space outside the 1280px
- * content shell — and hide themselves when there is no gutter to live
- * in, rather than sliding under the text.
+ * Strands live strictly in the gutter — the space outside the 1280px
+ * content shell — and fade to nothing well before the type. Where there
+ * is no gutter to live in, the whole thing hides rather than sliding
+ * under the copy.
+ *
+ * One canvas per side, sized to the gutter: a single full-viewport
+ * canvas would clear and repaint a mostly empty surface every frame.
  */
 ---
 
 <div class="rails" aria-hidden="true">
-  <div class="rails__side rails__side--left"></div>
-  <div class="rails__side rails__side--right"></div>
+  <canvas class="rails__side rails__side--left" data-side="left"></canvas>
+  <canvas class="rails__side rails__side--right" data-side="right"></canvas>
 </div>
 
 <style>
@@ -23,80 +27,140 @@
     inset: 0;
     z-index: 2; /* over the cream sheet, under the nav */
     pointer-events: none;
-    /* Whatever is left over once the content shell has taken its share. */
+    /* Whatever is left once the content shell has taken its share. */
     --gutter: calc((100vw - 1280px) / 2);
   }
 
   .rails__side {
     position: absolute;
     top: 0;
-    bottom: 0;
+    height: 100%;
     width: var(--gutter);
     opacity: 0;
     transition: opacity 0.7s var(--ease-out-soft);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='96'%3E%3Cg fill='none' stroke='%231b3b4b' stroke-opacity='0.22' stroke-width='1'%3E%3Cpath d='M-10 20 Q20 12 50 20 T110 20 T170 20'/%3E%3Cpath d='M-10 52 Q26 44 62 52 T134 52'/%3E%3Cpath d='M-10 78 Q18 71 46 78 T102 78 T158 78'/%3E%3C/g%3E%3C/svg%3E");
-    background-repeat: repeat-y;
-    background-position: center var(--drift, 0px);
-    /* Fade toward the content so the ripples never compete with type. */
-    -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 100%);
-    mask-image: linear-gradient(90deg, #000 0%, transparent 100%);
   }
 
-  /* Ripples belong on the paper. Over the water they would only compete
-     with the real thing. */
+  /* The current belongs on the paper. Over the water it would only
+     compete with the real thing. */
   :global(html[data-surface='sheet']) .rails__side {
-    opacity: 0.5;
+    opacity: 1;
   }
 
-  .rails__side--left {
-    left: 0;
-  }
+  .rails__side--left { left: 0; }
+  .rails__side--right { right: 0; }
 
-  .rails__side--right {
-    right: 0;
-    -webkit-mask-image: linear-gradient(270deg, #000 0%, transparent 100%);
-    mask-image: linear-gradient(270deg, #000 0%, transparent 100%);
-  }
-
-  /* Below this there is no gutter, and ripples would sit under the copy. */
+  /* Below this there is no gutter, and strands would sit under the copy. */
   @media (max-width: 1400px) {
-    .rails {
-      display: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .rails__side {
-      background-position: center 0;
-    }
+    .rails { display: none; }
   }
 </style>
 
 <script>
   const rails = document.querySelector<HTMLElement>('.rails');
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canvases = [...document.querySelectorAll<HTMLCanvasElement>('.rails__side')];
 
-  if (rails && !reduced) {
-    const TILE = 96; // must match the SVG tile height
-    let ticking = false;
+  if (rails && canvases.length) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const root = document.documentElement;
 
-    const update = () => {
-      // Drift slower than the page so it reads as a current being passed,
-      // not as wallpaper glued to the scroll.
-      rails.style.setProperty('--drift', `${(window.scrollY * 0.35) % TILE}px`);
-      ticking = false;
-    };
+    /** Tuning confirmed on the design draft. */
+    const STRENGTH = 1.4;
+    const SPEED = 1.1;
 
-    window.addEventListener(
-      'scroll',
-      () => {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(update);
-      },
-      { passive: true },
-    );
+    // u: 0 at the screen edge, 1 at the content column.
+    const strands = Array.from({ length: 26 }, () => ({
+      u: Math.random(),
+      w: 0.6 + Math.random() * 2.2,
+      sway: 5 + Math.random() * 16,
+      ph: Math.random() * Math.PI * 2,
+      sp: 0.5 + Math.random() * 1.1,
+      a: 0.25 + Math.random() * 0.75,
+    }));
 
-    update();
+    let vw = 0;
+    let vh = 0;
+    let raf = 0;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      vh = window.innerHeight;
+      for (const c of canvases) {
+        vw = c.clientWidth;
+        c.width = Math.max(1, Math.round(vw * dpr));
+        c.height = Math.max(1, Math.round(vh * dpr));
+        c.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    }
+
+    function paint(c: HTMLCanvasElement, off: number) {
+      const ctx = c.getContext('2d');
+      const gut = c.clientWidth;
+      if (!ctx || gut < 24) return;
+      ctx.clearRect(0, 0, gut, vh);
+
+      const outward = c.dataset.side === 'left';
+
+      for (const s of strands) {
+        // Anchor u=0 to whichever edge is the outside on this side.
+        const x = outward ? s.u * gut : gut - s.u * gut;
+        const fade = Math.pow(1 - s.u, 1.9); // strong outside, gone inside
+        const alpha = s.a * fade * STRENGTH * 0.5;
+        if (alpha < 0.012) continue;
+
+        // Outer strands run the deeper blue; inner ones pale out.
+        const col = s.u < 0.45 ? '94, 141, 166' : '169, 199, 214';
+        ctx.strokeStyle = `rgba(${col}, ${alpha})`;
+        ctx.lineWidth = s.w * (0.5 + fade);
+        ctx.beginPath();
+        for (let y = -60; y <= vh + 60; y += 14) {
+          const phase = (y + off * s.sp) * 0.011 + s.ph;
+          const xx =
+            x +
+            Math.sin(phase) * s.sway * (0.4 + fade) +
+            Math.sin(phase * 2.3 + s.ph) * s.sway * 0.28;
+          if (y === -60) ctx.moveTo(xx, y);
+          else ctx.lineTo(xx, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function frame(now: number) {
+      // Nothing to see while the viewport is over open water.
+      if (root.dataset.surface !== 'water') {
+        // The flow trails the page: scroll carries it, plus a slow drift.
+        const off = window.scrollY * 0.55 + (reduced ? 0 : (now / 1000) * 34 * SPEED);
+        for (const c of canvases) paint(c, off);
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (raf) return;
+      raf = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    }
+
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+    window.addEventListener('resize', resize);
+
+    resize();
+    if (reduced) {
+      // One static frame: the strands still decorate, they just hold still.
+      for (const c of canvases) paint(c, window.scrollY * 0.55);
+      window.addEventListener(
+        'scroll',
+        () => {
+          for (const c of canvases) paint(c, window.scrollY * 0.55);
+        },
+        { passive: true },
+      );
+    } else {
+      start();
+    }
   }
 </script>

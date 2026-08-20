@@ -180,6 +180,59 @@ function drawBoat(
   ctx.restore();
 }
 
+/**
+ * One gust of wind, drawn at the pointer.
+ *
+ * Tapered streaks marching along the wind, each fading in and out on its
+ * own cycle, with a small curl at the leading edge. A dark pass sits
+ * under the light one — pure white alone disappears into the pale band
+ * just below the horizon.
+ */
+function drawGust(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  dir: number,
+  t: number,
+  power: number,
+  puffs: { o: number; y: number; len: number; dx: number; sp: number; a: number }[],
+) {
+  if (power < 0.02) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  ctx.lineCap = 'round';
+
+  for (const p of puffs) {
+    const cyc = (t * p.sp * 1.6 + p.o) % (Math.PI * 2);
+    const march = (cyc / (Math.PI * 2)) * 132 - 56;
+    const fade = Math.sin((cyc / (Math.PI * 2)) * Math.PI);
+    const alpha = p.a * fade * power;
+    if (alpha < 0.02) continue;
+
+    const len = p.len * (0.45 + 0.55 * fade);
+    const yy = p.y + Math.sin(cyc * 0.8) * 3.4;
+    const lw = 2.1 * (0.45 + fade * 0.95);
+
+    ctx.strokeStyle = `rgba(24, 44, 58, ${alpha * 0.3})`;
+    ctx.lineWidth = lw * 1.9;
+    ctx.beginPath();
+    ctx.moveTo(march - len + p.dx, yy + 1);
+    ctx.quadraticCurveTo(march - len * 0.4 + p.dx, yy - 1, march + p.dx, yy + 1);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(march - len + p.dx, yy);
+    ctx.quadraticCurveTo(march - len * 0.4 + p.dx, yy - 2.2, march + p.dx, yy);
+    ctx.quadraticCurveTo(march + 10 + p.dx, yy - 0.6, march + 6.5 + p.dx, yy + 6.2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 /* ------------------------------------------------------------------ */
 /* Renderer                                                            */
 /* ------------------------------------------------------------------ */
@@ -193,6 +246,7 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
   if (!ctx) return { destroy() {} };
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const root = document.documentElement;
 
   let w = 0;
   let h = 0;
@@ -203,13 +257,37 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
   let progress = 0;
   let targetProgress = 0;
 
-  /** Pointer steering. `null` until the visitor actually moves a mouse,
-   *  so the boat never jumps on load or on touch-only devices. */
+  /** Pointer position in viewport space. `null` until a mouse actually
+   *  moves, so nothing reacts on load or on touch-only devices. */
   let pointerX: number | null = null;
-  /** The boat's own eased x — it follows the pointer with real lag, which
-   *  is what makes it read as a boat being steered and not a cursor. */
+  let pointerY: number | null = null;
+  let lastPointerX: number | null = null;
+  /** Below the waterline the cursor becomes a gust. */
+  let windOn = false;
+  /** 0..1, eased — how fully the gust has arrived. */
+  let gustPower = 0;
+  /** 0..1, eased from pointer speed — a hard sweep blows harder. */
+  let agitation = 0;
+  /** The boat's own x. The wind moves it; it sails back when the wind
+   *  drops. It never simply tracks the cursor. */
   let boatX: number | null = null;
   let boatVel = 0;
+
+  /**
+   * An east wind: it always blows from the east, so on screen it always
+   * runs right to left. The pointer sets how hard, never which way.
+   */
+  const WIND_DIR = -1;
+
+  /** Streaks making up one gust. Staggered so the tails do not comb up. */
+  const puffs = Array.from({ length: 13 }, (_, i) => ({
+    o: (i / 13) * Math.PI * 2,
+    y: ((i % 5) - 2) * 10 + (Math.random() - 0.5) * 7,
+    len: 44 + Math.random() * 74,
+    dx: (Math.random() - 0.5) * 52,
+    sp: 0.6 + Math.random() * 0.8,
+    a: 0.5 + Math.random() * 0.5,
+  }));
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -367,22 +445,37 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     const bob = reduced ? 0 : Math.sin(t * 0.9) * 3 + Math.sin(t * 1.7) * 1.2;
 
     // Where scroll alone would put the boat.
+    // Where scroll alone would hold the boat — its mooring.
     const drift = w * (0.3 + progress * 0.52);
 
-    // The pointer only has authority over the hero. Past it, steering
-    // hands back to the scroll position rather than fighting it.
-    const authority = reduced || pointerX === null ? 0 : Math.max(0, 1 - progress / 0.16);
-    const steerTo = pointerX === null ? drift : clamp(pointerX, w * 0.1, w * 0.9);
-    const target = drift + (steerTo - drift) * authority;
+    // The wind only has authority over the hero; past it the boat
+    // returns to the scroll track rather than fighting it.
+    const authority = reduced ? 0 : Math.max(0, 1 - progress / 0.16);
+    const blowing = windOn && authority > 0;
+    gustPower += ((blowing ? 1 : 0) - gustPower) * 0.09;
 
-    if (boatX === null) boatX = target;
-    const prevX = boatX;
-    // Deliberately heavy: the lag is the whole feel of steering a boat.
-    boatX += (target - boatX) * 0.055;
-    boatVel = boatVel * 0.85 + (boatX - prevX) * 0.15;
+    // The gust stands in for the cursor only while it is actually blowing.
+    if (blowing) root.dataset.wind = 'on';
+    else if (root.dataset.wind) delete root.dataset.wind;
 
-    // Bank into the turn, on top of the idle roll.
-    const heel = clamp(boatVel * 0.03, -0.16, 0.16);
+    // Pointer speed feeds gust strength — direction is fixed.
+    const sweep =
+      pointerX !== null && lastPointerX !== null ? Math.abs(pointerX - lastPointerX) : 0;
+    agitation += (Math.min(1, sweep / 26) - agitation) * 0.12;
+    lastPointerX = pointerX;
+
+    if (boatX === null) boatX = drift;
+    // A steady easterly plus whatever the sweep adds, always leftward.
+    const push = WIND_DIR * (0.55 + agitation * 2.6) * gustPower * authority;
+    boatX += push;
+    // Off the wind, she makes her way back to the mooring.
+    boatX += (drift - boatX) * (blowing ? 0.004 : 0.022);
+    boatX = clamp(boatX, w * 0.1, w * 0.9);
+
+    boatVel = boatVel * 0.86 + push * 0.14;
+
+    // Heel away from the wind, on top of the idle roll.
+    const heel = clamp(boatVel * 0.05, -0.2, 0.2);
     const tilt = (reduced ? 0 : Math.sin(t * 0.9 + 0.6) * 0.02) + heel;
 
     const bx = boatX;
@@ -398,6 +491,27 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     drawBoat(ctx!, 0, 0, boatScale, css(A.water[1]), true);
     ctx!.restore();
 
+    // Wake — only once she is actually moving under the wind.
+    if (Math.abs(boatVel) > 0.35) {
+      ctx!.save();
+      ctx!.strokeStyle = css([255, 255, 255], clamp(Math.abs(boatVel) * 0.05, 0, 0.3));
+      ctx!.lineWidth = 1.2;
+      for (let i = 1; i <= 3; i++) {
+        ctx!.beginPath();
+        ctx!.ellipse(
+          bx - WIND_DIR * i * 17 * boatScale,
+          by + 4 + i * 2.5,
+          (22 + i * 12) * boatScale,
+          (3 + i * 1.6) * boatScale,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx!.stroke();
+      }
+      ctx!.restore();
+    }
+
     ctx!.save();
     ctx!.translate(bx, by);
     ctx!.rotate(tilt);
@@ -405,6 +519,10 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     const hullTint = progress > 0.82 ? css([6, 14, 22], 0.95) : css([14, 20, 26], 0.92);
     drawBoat(ctx!, 0, 0, boatScale, hullTint);
     ctx!.restore();
+
+    if (pointerX !== null && pointerY !== null) {
+      drawGust(ctx!, pointerX, pointerY, WIND_DIR, t, gustPower, puffs);
+    }
 
     /* --- vignette -------------------------------------------------- */
     const vig = ctx!.createRadialGradient(w / 2, h * 0.5, h * 0.32, w / 2, h * 0.5, h * 0.95);
@@ -429,15 +547,22 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
   }
 
   function onPointerMove(e: PointerEvent) {
-    // Touch drives scrolling, not steering — hijacking it would fight
-    // the gesture the visitor actually made.
+    // Touch drives scrolling — hijacking it would fight the gesture the
+    // visitor actually made.
     if (e.pointerType === 'touch') return;
     pointerX = e.clientX;
+    pointerY = e.clientY;
+
+    // The waterline is the switch: sky above, wind below.
+    windOn = pointerY > h * (0.63 - progress * 0.13);
   }
 
   function onPointerLeave() {
-    // Release the helm: the boat eases back onto its scroll track.
+    // The wind drops and she sails back to her mooring.
     pointerX = null;
+    pointerY = null;
+    lastPointerX = null;
+    windOn = false;
   }
 
   function onVisibility() {
@@ -445,6 +570,9 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     if (document.hidden) {
       running = false;
       cancelAnimationFrame(raf);
+      // The frame loop is what clears this; stopping with the wind up
+      // would otherwise leave the cursor hidden.
+      delete root.dataset.wind;
     } else if (!running) {
       running = true;
       raf = requestAnimationFrame(frame);
@@ -470,6 +598,7 @@ export function mountWater(canvas: HTMLCanvasElement): WaterHandle {
     destroy() {
       running = false;
       cancelAnimationFrame(raf);
+      delete root.dataset.wind;
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('pointermove', onPointerMove);
